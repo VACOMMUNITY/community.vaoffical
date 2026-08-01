@@ -101,7 +101,9 @@ export const useDatabase = () => {
   };
 
   useEffect(() => {
-    loadAllData();
+    Promise.resolve().then(() => {
+      loadAllData();
+    });
 
     const handleUpdate = () => {
       loadAllData();

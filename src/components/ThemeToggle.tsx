@@ -2,39 +2,27 @@ import { useState, useEffect } from 'react';
 import { Sun, Moon } from 'lucide-react';
 
 export default function ThemeToggle() {
-  const [isDark, setIsDark] = useState(false);
-
-  useEffect(() => {
+  const [isDark, setIsDark] = useState(() => {
     try {
       const savedTheme = localStorage.getItem('theme');
-      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      
-      console.log('ThemeToggle mount:', { savedTheme, systemPrefersDark });
-
-      if (savedTheme === 'dark' || (!savedTheme && systemPrefersDark)) {
-        document.documentElement.classList.add('dark');
-        document.documentElement.style.colorScheme = 'dark';
-        setIsDark(true);
-        console.log('ThemeToggle: Set dark mode');
-      } else {
-        document.documentElement.classList.remove('dark');
-        document.documentElement.style.colorScheme = 'light';
-        setIsDark(false);
-        console.log('ThemeToggle: Set light mode');
+      if (savedTheme) {
+        return savedTheme === 'dark';
       }
-    } catch (e) {
-      console.error('ThemeToggle mount error:', e);
-      // Fallback
-      const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-      if (systemPrefersDark) {
-        document.documentElement.classList.add('dark');
-        setIsDark(true);
-      } else {
-        document.documentElement.classList.remove('dark');
-        setIsDark(false);
-      }
+      return window.matchMedia('(prefers-color-scheme: dark)').matches;
+    } catch {
+      return false;
     }
-  }, []);
+  });
+
+  useEffect(() => {
+    if (isDark) {
+      document.documentElement.classList.add('dark');
+      document.documentElement.style.colorScheme = 'dark';
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.documentElement.style.colorScheme = 'light';
+    }
+  }, [isDark]);
 
   const toggleTheme = (e: React.MouseEvent) => {
     e.preventDefault();
