@@ -1,5 +1,5 @@
 // Centralized HTTP API Client for COMMUNITY.VA
-
+const API_URL = "https://communityvaofficial.onrender.com/api";
 const getToken = () => localStorage.getItem('cva_token');
 export const setToken = (token: string | null) => {
   if (token) {
@@ -21,7 +21,7 @@ const request = async (url: string, options: RequestInit = {}) => {
     headers.set('Content-Type', 'application/json');
   }
 
-  const response = await fetch(url, {
+  const response = await fetch(`${API_URL}${url}`, {
     ...options,
     headers
   });
