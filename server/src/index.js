@@ -11,9 +11,13 @@ const PORT = process.env.PORT || 5000;
 
 // Enable CORS
 app.use(cors({
-  origin: '*', // Allow all client queries in local environment
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  origin: [
+    "https://community-vaofficial.vercel.app",
+    "http://localhost:5173"
+  ],
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 app.use(express.json());
