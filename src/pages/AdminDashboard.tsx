@@ -327,7 +327,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
     // Table content
     ctx.fillStyle = '#0f172a';
     ctx.fillText(pay.itemName.substring(0, 40), 50, 350);
-    ctx.fillText(`$${pay.amount}`, 480, 350);
+    ctx.fillText(`INR ${pay.amount}`, 480, 350);
 
     ctx.strokeStyle = '#e2e8f0';
     ctx.lineWidth = 1;
@@ -335,7 +335,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
 
     ctx.font = 'bold 14px sans-serif';
     ctx.fillText('Total Paid:', 380, 420);
-    ctx.fillText(`$${pay.amount}`, 480, 420);
+    ctx.fillText(`INR ${pay.amount}`, 480, 420);
 
     // Terms
     ctx.fillStyle = '#94a3b8';
@@ -528,7 +528,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
                 </div>
                 <div className="rounded-2xl border border-slate-250/50 dark:border-slate-850 bg-white dark:bg-slate-900 p-5 shadow-sm">
                   <span className="text-xs text-slate-400 dark:text-slate-500 font-bold uppercase tracking-wider">Total Revenue</span>
-                  <p className="text-3xl font-black mt-2 text-brand-600 dark:text-brand-400">${totalRevenue.toFixed(2)}</p>
+                  <p className="text-3xl font-black mt-2 text-brand-600 dark:text-brand-400">₹{totalRevenue.toFixed(2)}</p>
                 </div>
               </div>
 
@@ -536,7 +536,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Revenue growth Chart */}
                 <div className="rounded-2xl border border-slate-200/50 dark:border-slate-850 bg-white dark:bg-slate-900 p-5 shadow-sm">
-                  <h3 className="font-extrabold text-slate-800 dark:text-white text-sm mb-4">Revenue Growth Over Time ($)</h3>
+                  <h3 className="font-extrabold text-slate-800 dark:text-white text-sm mb-4">Revenue Growth Over Time (₹)</h3>
                   <div className="h-64">
                     <ResponsiveContainer width="100%" height="100%">
                       <AreaChart data={revenueChartData}>
@@ -672,7 +672,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
                 <div className="rounded-2xl border border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-900 p-6 shadow-sm animate-fade-in-up max-w-2xl">
                   <h4 className="font-bold text-slate-800 dark:text-white mb-4">{editingEventId ? 'Edit Event' : 'Create New Event'}</h4>
                   <form onSubmit={handleSaveEvent} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Title</label>
                         <input
@@ -708,7 +708,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
                       />
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Date</label>
                         <input
@@ -732,7 +732,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                       <div>
                         <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Venue</label>
                         <input
@@ -754,7 +754,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Fees ($)</label>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Fees (₹)</label>
                         <input
                           type="number"
                           required
@@ -812,7 +812,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
                         <td className="p-4 font-bold text-slate-900 dark:text-white">{evt.title}</td>
                         <td className="p-4">{evt.date} | {evt.time}</td>
                         <td className="p-4">{evt.seatsAvailable} / {evt.seatsTotal} available</td>
-                        <td className="p-4">{evt.fees === 0 ? 'Free' : `$${evt.fees}`}</td>
+                        <td className="p-4">{evt.fees === 0 ? 'Free' : `₹${evt.fees}`}</td>
                         <td className="p-4 text-right space-x-1.5">
                           <button
                             onClick={() => handleShowAttendees(evt.id)}
@@ -897,7 +897,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
                 <div className="rounded-2xl border border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-900 p-6 shadow-sm animate-fade-in-up max-w-2xl">
                   <h4 className="font-bold text-slate-800 dark:text-white mb-4">{editingCourseId ? 'Edit Course Catalog Info' : 'Create Course'}</h4>
                   <form onSubmit={handleSaveCourse} className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Title</label>
                         <input
@@ -923,7 +923,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Instructor</label>
                         <input
@@ -935,7 +935,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
                         />
                       </div>
                       <div>
-                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Price ($)</label>
+                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Price (₹)</label>
                         <input
                           type="number"
                           required
@@ -1001,7 +1001,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
                             {crs.category}
                           </span>
                           <h4 className="font-extrabold text-sm text-slate-850 dark:text-white mt-1.5">{crs.title}</h4>
-                          <p className="text-[10px] text-slate-400 mt-1">Instructor: {crs.instructor} | Price: ${crs.price} | Enrollments: {enrollCount}</p>
+                          <p className="text-[10px] text-slate-400 mt-1">Instructor: {crs.instructor} | Price: ₹{crs.price} | Enrollments: {enrollCount}</p>
                         </div>
                         <div className="flex gap-1.5">
                           <button
@@ -1040,7 +1040,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
                         {/* Add Video Mini Form inline */}
                         <div className="mt-3 bg-slate-50/50 dark:bg-slate-950/20 border border-slate-100 dark:border-slate-800 p-3.5 rounded-xl space-y-2 max-w-xl">
                           <span className="text-[10px] font-bold text-slate-500 uppercase block">➕ Add Video Chapter Module</span>
-                          <div className="grid grid-cols-3 gap-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
                             <input
                               type="text"
                               placeholder="e.g. 1. Introduction"
@@ -1102,7 +1102,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
                           <span className="font-semibold block">{p.itemName}</span>
                           <span className="text-[10px] text-slate-400 block capitalize">{p.itemType} | {new Date(p.date).toLocaleDateString()}</span>
                         </td>
-                        <td className="p-4 font-bold">${p.amount}</td>
+                        <td className="p-4 font-bold">₹{p.amount}</td>
                         <td className="p-4">{p.paymentMethod}</td>
                         <td className="p-4">
                           <span className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9px] font-extrabold ${

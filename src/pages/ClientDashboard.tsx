@@ -46,6 +46,19 @@ export default function ClientDashboard({ onLogout, onNavigate }: ClientDashboar
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState('');
 
+  // Sync profile form once currentUser is loaded
+  useEffect(() => {
+    if (currentUser) {
+      setProfileForm({
+        name: currentUser.name || '',
+        phone: currentUser.phone || '',
+        bio: currentUser.bio || '',
+        photo: currentUser.profilePhoto || '',
+        newPassword: ''
+      });
+    }
+  }, [currentUser]);
+
   if (!currentUser) return null;
 
   const showToast = (msg: string) => {
@@ -637,7 +650,7 @@ export default function ClientDashboard({ onLogout, onNavigate }: ClientDashboar
                     <div className="mt-6 pt-6 border-t border-slate-100 dark:border-slate-800 grid grid-cols-3 gap-4 text-center">
                       <div>
                         <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Price</span>
-                        <span className="font-extrabold text-slate-850 dark:text-white">{selectedEvent.fees === 0 ? 'Free' : `$${selectedEvent.fees}`}</span>
+                        <span className="font-extrabold text-slate-850 dark:text-white">{selectedEvent.fees === 0 ? 'Free' : `₹${selectedEvent.fees}`}</span>
                       </div>
                       <div>
                         <span className="text-[10px] text-slate-400 uppercase tracking-wider block">Venue</span>
@@ -709,7 +722,7 @@ export default function ClientDashboard({ onLogout, onNavigate }: ClientDashboar
                           <p className="text-[10px] text-slate-400 mt-1">{evt.date} | {evt.time}</p>
                           <div className="flex justify-between items-center mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/80 text-xs font-semibold flex-1">
                             <span className="text-slate-400 dark:text-slate-500">{evt.seatsAvailable} seats left</span>
-                            <span className="text-slate-800 dark:text-white font-bold">{evt.fees === 0 ? 'Free' : `$${evt.fees}`}</span>
+                            <span className="text-slate-800 dark:text-white font-bold">{evt.fees === 0 ? 'Free' : `₹${evt.fees}`}</span>
                           </div>
 
                           <div className="mt-4 flex gap-2">
@@ -932,7 +945,7 @@ export default function ClientDashboard({ onLogout, onNavigate }: ClientDashboar
                             <div className="space-y-4">
                               <div className="rounded-2xl border border-slate-150 dark:border-slate-800 p-5 bg-slate-50/50 dark:bg-slate-950/20 text-center">
                                 <span className="text-xs text-slate-450 uppercase block mb-1">Tuition Fee</span>
-                                <span className="text-3xl font-black text-brand-600 dark:text-brand-400">${selectedCourse.price}</span>
+                                <span className="text-3xl font-black text-brand-600 dark:text-brand-400">₹{selectedCourse.price}</span>
                                 <button
                                   onClick={() => handlePurchaseCourseTrigger(selectedCourse)}
                                   className="w-full mt-4 rounded-xl bg-brand-600 hover:bg-brand-700 py-3 text-center text-sm font-bold text-white shadow-md shadow-brand-500/10 transition"
@@ -999,7 +1012,7 @@ export default function ClientDashboard({ onLogout, onNavigate }: ClientDashboar
                             ) : (
                               <>
                                 <span className="text-slate-400 dark:text-slate-500">{crs.videos.length} lectures</span>
-                                <span className="text-brand-650 dark:text-brand-400 font-bold">${crs.price}</span>
+                                <span className="text-brand-650 dark:text-brand-400 font-bold">₹{crs.price}</span>
                               </>
                             )}
                           </div>
@@ -1302,7 +1315,7 @@ export default function ClientDashboard({ onLogout, onNavigate }: ClientDashboar
                           <div className="flex justify-between items-start font-bold">
                             <span className="text-slate-700 dark:text-slate-300 truncate max-w-[70%]">{pay.itemName}</span>
                             <span className={pay.status === 'success' ? 'text-green-600' : 'text-red-500'}>
-                              {pay.status === 'success' ? `+$${pay.amount}` : `-$${pay.amount} Ref`}
+                              {pay.status === 'success' ? `+₹${pay.amount}` : `-₹${pay.amount} Ref`}
                             </span>
                           </div>
                           <div className="flex justify-between items-center text-[10px] text-slate-400 mt-1">

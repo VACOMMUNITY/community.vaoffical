@@ -133,9 +133,9 @@ async function seedDatabase() {
     const eventsQuery = `
       INSERT INTO events (id, title, description, banner, event_date, event_time, venue, fees, seats_total, seats_available, category)
       VALUES 
-        ('evt_1', 'The Art of Negotiating Your First Salary', 'Learn negotiation scripts and salary estimation methods with mentors.', 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=800', '2026-06-25', '18:00 - 20:00', 'Zoom Online Meeting', 15.00, 50, 49, 'Career Prep'),
+        ('evt_1', 'The Art of Negotiating Your First Salary', 'Learn negotiation scripts and salary estimation methods with mentors.', 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=800', '2026-06-25', '18:00 - 20:00', 'Zoom Online Meeting', 1200.00, 50, 49, 'Career Prep'),
         ('evt_2', 'Demystifying Non-Technical Roles in Tech', 'Panel discussion with UX designers, product owners, and scrum leads.', 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&q=80&w=800', '2026-07-12', '15:00 - 17:30', 'Vibrant Hub, NY & Hybrid', 0.00, 150, 150, 'Networking'),
-        ('evt_3', 'Public Speaking BootCamp: Overcome Stage Fright', 'Conquer presentation anxiety with voice coaching and interactive pacing.', 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&q=80&w=800', '2026-08-02', '10:00 - 16:00', 'Convention Center, Hall B', 49.00, 30, 30, 'Public Speaking');
+        ('evt_3', 'Public Speaking BootCamp: Overcome Stage Fright', 'Conquer presentation anxiety with voice coaching and interactive pacing.', 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&q=80&w=800', '2026-08-02', '10:00 - 16:00', 'Convention Center, Hall B', 3920.00, 30, 30, 'Public Speaking');
     `;
     await db.exec(eventsQuery);
 
@@ -143,9 +143,9 @@ async function seedDatabase() {
     const coursesQuery = `
       INSERT INTO courses (id, title, description, thumbnail, price, instructor, category, rating, reviews_count)
       VALUES 
-        ('crs_1', 'Public Speaking & Influential Presentation Mastery', 'Overcome fear and craft speech scripts that resonate. Learn vocal variety, gestures, and audience engagement.', 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=600', 39.00, 'David Vance (Toastmaster Champion)', 'Public Speaking', 4.8, 124),
-        ('crs_2', 'Resume Building & High-Impact Interview Strategy', 'Design ATS-compliant templates, script behavioral answers using the STAR method, and negotiate salary packages.', 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&q=80&w=600', 29.00, 'Clara Oswald (Ex-HR Google)', 'Career Prep', 4.9, 215),
-        ('crs_3', 'Emotional Intelligence & Leadership Foundations', 'Develop self-awareness, active listening, conflict resolution, and leadership structures to lead high-performing teams.', 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=600', 49.00, 'Marcus Aurelius (Management Consultant)', 'Leadership', 4.7, 98);
+        ('crs_1', 'Public Speaking & Influential Presentation Mastery', 'Overcome fear and craft speech scripts that resonate. Learn vocal variety, gestures, and audience engagement.', 'https://images.unsplash.com/photo-1517245386807-bb43f82c33c4?auto=format&fit=crop&q=80&w=600', 3120.00, 'David Vance (Toastmaster Champion)', 'Public Speaking', 4.8, 124),
+        ('crs_2', 'Resume Building & High-Impact Interview Strategy', 'Design ATS-compliant templates, script behavioral answers using the STAR method, and negotiate salary packages.', 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&q=80&w=600', 2320.00, 'Clara Oswald (Ex-HR Google)', 'Career Prep', 4.9, 215),
+        ('crs_3', 'Emotional Intelligence & Leadership Foundations', 'Develop self-awareness, active listening, conflict resolution, and leadership structures to lead high-performing teams.', 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=600', 3920.00, 'Marcus Aurelius (Management Consultant)', 'Leadership', 4.7, 98);
     `;
     await db.exec(coursesQuery);
 
@@ -183,8 +183,8 @@ async function seedDatabase() {
 
       INSERT INTO payments (id, user_id, amount, payment_method, status, item_type, item_id, item_name, date)
       VALUES 
-        ('pay_evt_1', 'usr_2', 15.00, 'UPI', 'success', 'event', 'evt_1', 'The Art of Negotiating Your First Salary', '2026-06-05T10:12:00Z'),
-        ('pay_crs_1', 'usr_2', 39.00, 'Credit Card', 'success', 'course', 'crs_1', 'Public Speaking & Influential Presentation Mastery', '2026-06-01T15:00:00Z');
+        ('pay_evt_1', 'usr_2', 1200.00, 'UPI', 'success', 'event', 'evt_1', 'The Art of Negotiating Your First Salary', '2026-06-05T10:12:00Z'),
+        ('pay_crs_1', 'usr_2', 3120.00, 'Credit Card', 'success', 'course', 'crs_1', 'Public Speaking & Influential Presentation Mastery', '2026-06-01T15:00:00Z');
     `;
     await db.exec(activityQuery);
 

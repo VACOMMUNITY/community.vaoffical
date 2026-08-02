@@ -101,7 +101,7 @@ export default function AIChatAssistant() {
   ];
 
   return (
-    <div className="fixed bottom-6 right-6 z-40">
+    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-40">
       {/* Floating Toggle Button */}
       {!isOpen && (
         <button
@@ -114,7 +114,7 @@ export default function AIChatAssistant() {
 
       {/* Chat Box */}
       {isOpen && (
-        <div className="flex h-[500px] w-[360px] flex-col rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl transition-all duration-300 animate-fade-in-up">
+        <div className="flex h-[500px] w-[calc(100vw-2rem)] sm:w-[360px] flex-col rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-2xl transition-all duration-300 animate-fade-in-up">
           {/* Header */}
           <div className="flex items-center justify-between rounded-t-2xl bg-brand-600 px-4 py-3 text-white">
             <div className="flex items-center gap-2">

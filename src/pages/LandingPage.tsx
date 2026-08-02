@@ -343,7 +343,7 @@ export default function LandingPage({ onNavigate, currentUser, onLogout }: Landi
                   </p>
                   <div className="border-t border-slate-200/50 dark:border-slate-800 pt-4 flex justify-between items-center text-xs font-semibold">
                     <span className="text-slate-400 dark:text-slate-500">{e.date}</span>
-                    <span className="text-slate-900 dark:text-white font-bold">{e.fees === 0 ? 'Free' : `$${e.fees}`}</span>
+                    <span className="text-slate-900 dark:text-white font-bold">{e.fees === 0 ? 'Free' : `₹${e.fees}`}</span>
                   </div>
                   <button
                     onClick={() => onNavigate('register')}
@@ -402,7 +402,7 @@ export default function LandingPage({ onNavigate, currentUser, onLogout }: Landi
                   </p>
                   <div className="border-t border-slate-200/50 dark:border-slate-800 pt-4 flex justify-between items-center text-xs font-semibold">
                     <span className="text-slate-400 dark:text-slate-500">{c.instructor}</span>
-                    <span className="text-brand-600 dark:text-brand-400 font-bold text-sm">${c.price}</span>
+                    <span className="text-brand-600 dark:text-brand-400 font-bold text-sm">₹{c.price}</span>
                   </div>
                   <button
                     onClick={() => onNavigate('register')}

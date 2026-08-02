@@ -120,12 +120,12 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, amount, itemN
               </div>
               <div className="text-right">
                 <span className="text-xs text-slate-400 dark:text-slate-500">Original price</span>
-                <p className="font-semibold text-slate-500 line-through">${amount}</p>
+                <p className="font-semibold text-slate-500 line-through">₹{amount}</p>
               </div>
             </div>
             <div className="mt-3 flex justify-between items-center border-t border-slate-200 dark:border-slate-700 pt-2 font-bold text-slate-900 dark:text-white">
               <span>Payable Amount:</span>
-              <span className="text-xl text-brand-600 dark:text-brand-400">${finalAmount.toFixed(2)}</span>
+              <span className="text-xl text-brand-600 dark:text-brand-400">₹{finalAmount.toFixed(2)}</span>
             </div>
           </div>
 
@@ -159,7 +159,7 @@ export default function PaymentModal({ isOpen, onClose, onSuccess, amount, itemN
 
           {/* Payment Method Selector Tabs */}
           <div className="mb-5 border-b border-slate-200 dark:border-slate-700">
-            <div className="flex gap-1 text-sm font-medium">
+            <div className="flex flex-wrap sm:flex-nowrap gap-1 text-xs sm:text-sm font-medium">
               <button
                 type="button"
                 onClick={() => setMethod('card')}
