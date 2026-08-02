@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { db } from '../data/mockDatabase';
 import ThemeToggle from '../components/ThemeToggle';
-import { Calendar, BookOpen, Users, ArrowRight, Star, Send, Shield, Award, MessageCircle, Heart, Sparkles } from 'lucide-react';
+import { Calendar, BookOpen, Users, ArrowRight, Star, Send, Shield, Award, MessageCircle, Heart, Sparkles, Menu, X } from 'lucide-react';
 
 interface LandingPageProps {
   onNavigate: (view: 'landing' | 'login' | 'register' | 'client' | 'admin') => void;
@@ -12,6 +12,7 @@ interface LandingPageProps {
 export default function LandingPage({ onNavigate, currentUser, onLogout }: LandingPageProps) {
   const [contactForm, setContactForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [formSubmitted, setFormSubmitted] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const events = db.getEvents().slice(0, 3);
   const courses = db.getCourses().slice(0, 3);
@@ -104,8 +105,66 @@ export default function LandingPage({ onNavigate, currentUser, onLogout }: Landi
                 </button>
               </div>
             )}
+            
+            {/* Hamburger Button */}
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 rounded-xl border border-slate-200/50 dark:border-slate-800/50 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition focus:outline-none"
+              aria-label="Toggle Menu"
+            >
+              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
           </div>
         </div>
+
+        {/* Mobile Dropdown Panel */}
+        {mobileMenuOpen && (
+          <div className="md:hidden border-t border-slate-200/20 dark:border-slate-800/50 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md px-6 py-4 space-y-3 shadow-lg">
+            <a 
+              href="#about" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="block text-sm font-bold text-slate-700 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-450 transition"
+            >
+              About
+            </a>
+            <a 
+              href="#events" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="block text-sm font-bold text-slate-700 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-450 transition"
+            >
+              Events
+            </a>
+            <a 
+              href="#courses" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="block text-sm font-bold text-slate-700 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-450 transition"
+            >
+              Courses
+            </a>
+            <a 
+              href="#testimonials" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="block text-sm font-bold text-slate-700 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-450 transition"
+            >
+              Testimonials
+            </a>
+            <a 
+              href="#contact" 
+              onClick={() => setMobileMenuOpen(false)}
+              className="block text-sm font-bold text-slate-700 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-450 transition"
+            >
+              Contact
+            </a>
+            {currentUser && (
+              <button
+                onClick={() => { onLogout(); setMobileMenuOpen(false); }}
+                className="w-full text-left text-sm font-bold text-red-500 hover:text-red-655 transition pt-2 border-t border-slate-100 dark:border-slate-800/60"
+              >
+                Log out
+              </button>
+            )}
+          </div>
+        )}
       </header>
 
       {/* Hero Section */}

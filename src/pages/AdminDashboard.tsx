@@ -3,7 +3,7 @@ import { useDatabase } from '../hooks/useDatabase';
 import { api } from '../data/api';
 import { 
   Users as UsersIcon, Calendar, BookOpen, DollarSign, Plus, Edit, Trash2, 
-  Search, ShieldAlert, ArrowLeft, Send, Ban, Check, Download, Landmark, FileText, X
+  Search, ShieldAlert, ArrowLeft, Send, Ban, Check, Download, Landmark, FileText, X, Menu
 } from 'lucide-react';
 import { 
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid 
@@ -17,6 +17,7 @@ interface AdminDashboardProps {
 export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardProps) {
   const { currentUser, users, courses, events, enrollments, payments } = useDatabase();
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'events' | 'courses' | 'payments' | 'notifications'>('overview');
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Notification form
   const [notificationMsg, setNotificationMsg] = useState({ title: '', body: '', target: 'all' });
@@ -376,10 +377,17 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
     <div className="flex min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-800 dark:text-slate-100 transition-colors duration-300">
       
       {/* Admin Side navigation bar */}
-      <aside className="w-64 border-r border-slate-200/50 dark:border-slate-850 bg-white dark:bg-slate-900 hidden md:block">
-        <div className="flex h-16 items-center px-6 border-b border-slate-100 dark:border-slate-800 gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-brand-600 to-red-500 text-white font-black text-sm">VA</div>
-          <span className="font-extrabold text-slate-850 dark:text-white">Admin Console</span>
+      <aside className={`fixed inset-y-0 left-0 z-30 w-64 border-r border-slate-200/50 dark:border-slate-850 bg-white dark:bg-slate-900 transition-transform duration-300 md:translate-x-0 ${
+        mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'
+      }`}>
+        <div className="flex h-16 items-center justify-between px-6 border-b border-slate-100 dark:border-slate-800 gap-2">
+          <div className="flex items-center gap-2 cursor-pointer" onClick={() => onNavigate('landing')}>
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-brand-600 to-red-500 text-white font-black text-sm">VA</div>
+            <span className="font-extrabold text-slate-850 dark:text-white">Admin Console</span>
+          </div>
+          <button className="md:hidden p-1 text-slate-500 hover:text-slate-700" onClick={() => setMobileMenuOpen(false)}>
+            <X className="h-5 w-5" />
+          </button>
         </div>
 
         <div className="p-4 border-b border-slate-100 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/20">
@@ -396,7 +404,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
 
         <nav className="p-4 space-y-1">
           <button
-            onClick={() => setActiveTab('overview')}
+            onClick={() => { setActiveTab('overview'); setMobileMenuOpen(false); }}
             className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${
               activeTab === 'overview' ? 'bg-brand-50 dark:bg-brand-950/20 text-brand-650 dark:text-brand-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50'
             }`}
@@ -405,7 +413,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
             Analytics Overview
           </button>
           <button
-            onClick={() => setActiveTab('users')}
+            onClick={() => { setActiveTab('users'); setMobileMenuOpen(false); }}
             className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${
               activeTab === 'users' ? 'bg-brand-50 dark:bg-brand-950/20 text-brand-650 dark:text-brand-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50'
             }`}
@@ -414,7 +422,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
             User Manager
           </button>
           <button
-            onClick={() => setActiveTab('events')}
+            onClick={() => { setActiveTab('events'); setMobileMenuOpen(false); }}
             className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${
               activeTab === 'events' ? 'bg-brand-50 dark:bg-brand-950/20 text-brand-650 dark:text-brand-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50'
             }`}
@@ -423,7 +431,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
             Event Constructor
           </button>
           <button
-            onClick={() => setActiveTab('courses')}
+            onClick={() => { setActiveTab('courses'); setMobileMenuOpen(false); }}
             className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${
               activeTab === 'courses' ? 'bg-brand-50 dark:bg-brand-950/20 text-brand-650 dark:text-brand-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50'
             }`}
@@ -432,7 +440,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
             Course Builder
           </button>
           <button
-            onClick={() => setActiveTab('payments')}
+            onClick={() => { setActiveTab('payments'); setMobileMenuOpen(false); }}
             className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${
               activeTab === 'payments' ? 'bg-brand-50 dark:bg-brand-950/20 text-brand-650 dark:text-brand-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50'
             }`}
@@ -441,7 +449,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
             Billing & Ledger
           </button>
           <button
-            onClick={() => setActiveTab('notifications')}
+            onClick={() => { setActiveTab('notifications'); setMobileMenuOpen(false); }}
             className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${
               activeTab === 'notifications' ? 'bg-brand-50 dark:bg-brand-950/20 text-brand-650 dark:text-brand-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50'
             }`}
@@ -453,7 +461,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
 
         <div className="absolute bottom-4 left-0 w-full px-4">
           <button
-            onClick={() => onNavigate('client')}
+            onClick={() => { onNavigate('client'); setMobileMenuOpen(false); }}
             className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 transition mb-2"
           >
             <ArrowLeft className="h-4.5 w-4.5" />
@@ -470,11 +478,16 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
       </aside>
 
       {/* Main Panel Viewport */}
-      <div className="flex-1 flex flex-col min-w-0">
+      <div className="flex-1 md:pl-64 flex flex-col min-w-0">
         
         {/* Header toolbar */}
         <header className="sticky top-0 z-20 flex h-16 items-center justify-between border-b border-slate-200/50 dark:border-slate-850 bg-white/80 dark:bg-slate-950/80 backdrop-blur px-6">
-          <h2 className="text-lg font-black text-slate-850 dark:text-white capitalize">Admin: {activeTab}</h2>
+          <div className="flex items-center gap-3">
+            <button className="md:hidden p-1.5 rounded-lg border dark:border-slate-800" onClick={() => setMobileMenuOpen(true)}>
+              <Menu className="h-5 w-5 text-slate-650" />
+            </button>
+            <h2 className="text-lg font-black text-slate-850 dark:text-white capitalize">Admin: {activeTab}</h2>
+          </div>
           <div className="flex items-center gap-4">
             <button
               onClick={() => onNavigate('client')}
