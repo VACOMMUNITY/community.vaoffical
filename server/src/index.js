@@ -21,6 +21,9 @@ app.use(cors({
 }));
 
 app.use(express.json());
+app.post('/api/test', (req, res) => {
+  res.json({ success: true });
+});
 
 // Main router mounting
 app.use('/api', router);
