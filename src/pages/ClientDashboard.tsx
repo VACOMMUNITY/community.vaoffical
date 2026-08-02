@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDatabase } from '../hooks/useDatabase';
 import { api } from '../data/api';
 import PaymentModal from '../components/PaymentModal';
