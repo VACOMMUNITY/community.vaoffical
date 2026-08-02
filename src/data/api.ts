@@ -111,7 +111,7 @@ export const api = {
   // --- Auth API ---
   auth: {
     login: async (email: string, password: string) => {
-      const res = await request('/api/auth/login', {
+      const res = await request('/auth/login', {
         method: 'POST',
         body: JSON.stringify({ email, password })
       });
@@ -119,7 +119,7 @@ export const api = {
       return mapUser(res.user);
     },
     register: async (name: string, email: string, phone: string, password: string) => {
-      const res = await request('/api/auth/register', {
+      const res = await request('/auth/register', {
         method: 'POST',
         body: JSON.stringify({ name, email, phone, password })
       });
@@ -127,7 +127,7 @@ export const api = {
       return mapUser(res.user);
     },
     googleLogin: async (email: string, name: string) => {
-      const res = await request('/api/auth/google', {
+      const res = await request('/auth/google', {
         method: 'POST',
         body: JSON.stringify({ email, name })
       });
@@ -135,11 +135,11 @@ export const api = {
       return mapUser(res.user);
     },
     getProfile: async () => {
-      const user = await request('/api/auth/profile');
+      const user = await request('/auth/profile');
       return mapUser(user);
     },
     updateProfile: async (profile: { name: string; phone: string; bio: string; photo: string }) => {
-      const user = await request('/api/auth/profile/update', {
+      const user = await request('/auth/profile/update', {
         method: 'PUT',
         body: JSON.stringify(profile)
       });
@@ -153,7 +153,7 @@ export const api = {
   // --- Courses API ---
   courses: {
     getAll: async () => {
-      const courses = await request('/api/courses');
+      const courses = await request('/courses');
       return mapCourseList(courses);
     },
     getById: async (id: string) => {
@@ -161,7 +161,7 @@ export const api = {
       return mapCourse(course);
     },
     enroll: async (courseId: string, amount: number, paymentMethod: string) => {
-      const res = await request('/api/courses/enroll', {
+      const res = await request('/courses/enroll', {
         method: 'POST',
         body: JSON.stringify({ courseId, amount, paymentMethod })
       });
@@ -171,25 +171,25 @@ export const api = {
       };
     },
     getMyEnrollments: async () => {
-      const enrollments = await request('/api/courses/enrollments/my');
+      const enrollments = await request('/courses/enrollments/my');
       return mapEnrollmentList(enrollments);
     },
     updateProgress: async (enrollmentId: string, videoId: string, courseId: string) => {
-      const enrollment = await request('/api/courses/progress', {
+      const enrollment = await request('/courses/progress', {
         method: 'PUT',
         body: JSON.stringify({ enrollmentId, videoId, courseId })
       });
       return mapEnrollment(enrollment);
     },
     toggleWishlist: async (courseId: string) => {
-      return request('/api/courses/wishlist', {
+      return request('/courses/wishlist', {
         method: 'POST',
         body: JSON.stringify({ courseId })
       });
     },
     // Admin CRUD
     add: async (course: { title: string; description: string; price: number; instructor: string; category: string; thumbnail?: string }) => {
-      const res = await request('/api/courses/add', {
+      const res = await request('/courses/add', {
         method: 'POST',
         body: JSON.stringify(course)
       });
@@ -218,7 +218,7 @@ export const api = {
   // --- Events API ---
   events: {
     getAll: async () => {
-      const events = await request('/api/events');
+      const events = await request('/events');
       return mapEventList(events);
     },
     getById: async (id: string) => {
@@ -226,7 +226,7 @@ export const api = {
       return mapEvent(event);
     },
     register: async (eventId: string, amount: number, paymentMethod: string) => {
-      const res = await request('/api/events/register', {
+      const res = await request('/events/register', {
         method: 'POST',
         body: JSON.stringify({ eventId, amount, paymentMethod })
       });
@@ -236,7 +236,7 @@ export const api = {
       };
     },
     getMyRegistrations: async () => {
-      const regs = await request('/api/events/registrations/my');
+      const regs = await request('/events/registrations/my');
       return mapRegistrationList(regs);
     },
     cancelRegistration: async (registrationId: string) => {
@@ -246,7 +246,7 @@ export const api = {
     },
     // Admin CRUD
     add: async (event: { title: string; description: string; date: string; time: string; venue: string; fees: number; seatsTotal: number; category: string; banner?: string }) => {
-      const res = await request('/api/events/add', {
+      const res = await request('/events/add', {
         method: 'POST',
         body: JSON.stringify(event)
       });
@@ -272,11 +272,11 @@ export const api = {
   // --- Forum API ---
   forum: {
     getAll: async () => {
-      const threads = await request('/api/forum');
+      const threads = await request('/forum');
       return mapThreadList(threads);
     },
     createThread: async (thread: { title: string; content: string; category: string }) => {
-      const res = await request('/api/forum/threads', {
+      const res = await request('/forum/threads', {
         method: 'POST',
         body: JSON.stringify(thread)
       });
@@ -298,7 +298,7 @@ export const api = {
   // --- Blog API ---
   blogs: {
     getAll: async () => {
-      return request('/api/blogs');
+      return request('/blogs');
     },
     getById: async (id: string) => {
       return request(`/api/blogs/${id}`);
@@ -308,7 +308,7 @@ export const api = {
   // --- Admin Console API ---
   admin: {
     getUsers: async () => {
-      const users = await request('/api/admin/users');
+      const users = await request('/admin/users');
       return mapUserList(users);
     },
     toggleBlockUser: async (id: string) => {
@@ -328,7 +328,7 @@ export const api = {
       });
     },
     getPayments: async () => {
-      return request('/api/admin/payments');
+      return request('/admin/payments');
     },
     refundPayment: async (id: string) => {
       return request(`/api/admin/payments/refund/${id}`, {
