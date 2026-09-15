@@ -123,6 +123,76 @@ export interface BlogArticle {
   likes: number;
 }
 
+export interface CampusAmbassador {
+  id: string;
+  name: string;
+  college: string;
+  city: string;
+  avatar: string;
+  points: number;
+  referralsCount: number;
+  tier: 'Gold' | 'Platinum' | 'Diamond';
+  joinedAt: string;
+  status: 'active' | 'pending';
+}
+
+export interface WeeklyChallenge {
+  id: string;
+  title: string;
+  tag: string;
+  description: string;
+  points: number;
+  deadline: string;
+  participantsCount: number;
+  icon: string;
+  deliverable: string;
+}
+
+export interface LeaderboardEntry {
+  rank: number;
+  name: string;
+  college: string;
+  points: number;
+  avatar: string;
+  badge: string;
+}
+
+export interface CollegePartner {
+  id: string;
+  name: string;
+  shortName: string;
+  location: string;
+  logo: string;
+  studentsTrained: number;
+  workshopsHosted: number;
+  mouStatus: 'Active Partner' | 'MOU Signed' | 'Chapter Active';
+}
+
+export interface CareerRole {
+  id: string;
+  title: string;
+  department: string;
+  location: string;
+  type: string;
+  experience: string;
+  description: string;
+  responsibilities: string[];
+  requirements: string[];
+}
+
+export interface Testimonial {
+  id: string;
+  name: string;
+  college: string;
+  rolePlaced: string;
+  company: string;
+  companyLogo?: string;
+  quote: string;
+  avatar: string;
+  rating: number;
+  courseTaken: string;
+}
+
 // Initial Seed Data
 const initialUsers: User[] = [
   {
@@ -403,6 +473,209 @@ const initialBlogs: BlogArticle[] = [
   }
 ];
 
+export const initialAmbassadors: CampusAmbassador[] = [
+  {
+    id: 'amb_1',
+    name: 'Rohan Deshmukh',
+    college: 'IIT Bombay',
+    city: 'Mumbai',
+    avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=150',
+    points: 4850,
+    referralsCount: 42,
+    tier: 'Diamond',
+    joinedAt: '2026-02-10',
+    status: 'active'
+  },
+  {
+    id: 'amb_2',
+    name: 'Ananya Sharma',
+    college: 'Delhi University (SRCC)',
+    city: 'New Delhi',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150',
+    points: 3920,
+    referralsCount: 35,
+    tier: 'Platinum',
+    joinedAt: '2026-03-01',
+    status: 'active'
+  },
+  {
+    id: 'amb_3',
+    name: 'Karthik Raja',
+    college: 'Anna University',
+    city: 'Chennai',
+    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=150',
+    points: 3100,
+    referralsCount: 28,
+    tier: 'Gold',
+    joinedAt: '2026-03-15',
+    status: 'active'
+  },
+  {
+    id: 'amb_4',
+    name: 'Meera Iyer',
+    college: 'BITS Pilani',
+    city: 'Pilani',
+    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=150',
+    points: 2750,
+    referralsCount: 22,
+    tier: 'Gold',
+    joinedAt: '2026-04-02',
+    status: 'active'
+  }
+];
+
+export const initialChallenges: WeeklyChallenge[] = [
+  {
+    id: 'ch_1',
+    title: 'The 60-Second Elevator Pitch',
+    tag: 'Public Speaking',
+    description: 'Record a 60-second video introducing yourself, your non-technical strengths, and how you solve problems using the Hook-Story-Offer formula.',
+    points: 500,
+    deadline: 'Sunday, 11:59 PM',
+    participantsCount: 342,
+    icon: 'Mic',
+    deliverable: 'Unlisted YouTube or Loom Link'
+  },
+  {
+    id: 'ch_2',
+    title: 'ATS Resume Audit Challenge',
+    tag: 'Career Prep',
+    description: 'Format your 1-page resume using active leadership verbs and metrics. Review 2 peer submissions and provide structured STAR feedback.',
+    points: 350,
+    deadline: 'Friday, 6:00 PM',
+    participantsCount: 512,
+    icon: 'FileText',
+    deliverable: 'PDF Upload + Peer Review Form'
+  },
+  {
+    id: 'ch_3',
+    title: 'Conflict Resolution Roleplay',
+    tag: 'Leadership',
+    description: 'Submit your step-by-step strategy for handling an underperforming teammate during a tight capstone deadline without escalating to professors.',
+    points: 400,
+    deadline: 'Next Tuesday',
+    participantsCount: 219,
+    icon: 'Shield',
+    deliverable: '300-word Case Analysis'
+  }
+];
+
+export const initialLeaderboard: LeaderboardEntry[] = [
+  { rank: 1, name: 'Rohan Deshmukh', college: 'IIT Bombay', points: 4850, avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=120', badge: 'Diamond Ambassador' },
+  { rank: 2, name: 'Ananya Sharma', college: 'Delhi University', points: 3920, avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120', badge: 'Master Orator' },
+  { rank: 3, name: 'Karthik Raja', college: 'Anna University', points: 3100, avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=120', badge: 'Growth Lead' },
+  { rank: 4, name: 'Priya Nair', college: 'NIT Trichy', points: 2980, avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=120', badge: 'STAR Interviewer' },
+  { rank: 5, name: 'Meera Iyer', college: 'BITS Pilani', points: 2750, avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=120', badge: 'Negotiation Ace' }
+];
+
+export const initialCollegePartners: CollegePartner[] = [
+  { id: 'col_1', name: 'Indian Institute of Technology Bombay', shortName: 'IIT Bombay', location: 'Mumbai, Maharashtra', logo: '🏛️', studentsTrained: 4200, workshopsHosted: 18, mouStatus: 'Active Partner' },
+  { id: 'col_2', name: 'Delhi University (Faculty of Management & Commerce)', shortName: 'Delhi University', location: 'New Delhi', logo: '🎓', studentsTrained: 6800, workshopsHosted: 26, mouStatus: 'MOU Signed' },
+  { id: 'col_3', name: 'National Institute of Technology Trichy', shortName: 'NIT Trichy', location: 'Tiruchirappalli, Tamil Nadu', logo: '⚡', studentsTrained: 3100, workshopsHosted: 14, mouStatus: 'Active Partner' },
+  { id: 'col_4', name: 'Birla Institute of Technology and Science', shortName: 'BITS Pilani', location: 'Pilani, Rajasthan', logo: '🔬', studentsTrained: 2900, workshopsHosted: 12, mouStatus: 'Chapter Active' },
+  { id: 'col_5', name: 'Vellore Institute of Technology', shortName: 'VIT Vellore', location: 'Vellore, Tamil Nadu', logo: '🚀', studentsTrained: 5400, workshopsHosted: 22, mouStatus: 'MOU Signed' },
+  { id: 'col_6', name: 'Symbiosis International University', shortName: 'Symbiosis Pune', location: 'Pune, Maharashtra', logo: '🌟', studentsTrained: 3600, workshopsHosted: 16, mouStatus: 'Active Partner' }
+];
+
+export const initialCareerRoles: CareerRole[] = [
+  {
+    id: 'car_1',
+    title: 'Lead Curriculum Architect (Soft Skills)',
+    department: 'Pedagogy & Learning',
+    location: 'Bangalore / Remote',
+    type: 'Full-time',
+    experience: '2-5 Years',
+    description: 'Design world-class, action-oriented workshops on negotiation, leadership presence, and corporate communication for college graduates.',
+    responsibilities: [
+      'Architect interactive lesson plans, case simulations, and rubric benchmarks',
+      'Collaborate with industry leaders from Google, McKinsey, and Microsoft to distill workplace communication standards',
+      'Track student evaluation metrics and iterate curriculum with data-driven feedback'
+    ],
+    requirements: [
+      'Proven experience in corporate instructional design or corporate soft skills training',
+      'Exceptional spoken and written communication',
+      'Deep empathy for first-generation college students and tier-2/3 college graduates'
+    ]
+  },
+  {
+    id: 'car_2',
+    title: 'Head of Campus Partnerships & University Alliances',
+    department: 'Growth & Institutional Sales',
+    location: 'Delhi NCR / Hybrid',
+    type: 'Full-time',
+    experience: '3-6 Years',
+    description: 'Drive strategic partnerships with Deans, Training & Placement Officers (TPOs), and student council heads across 100+ top Indian universities.',
+    responsibilities: [
+      'Scale university MOUs for campus-wide soft-skill bootcamps',
+      'Manage regional campus growth managers and student brand ambassadors',
+      'Pitch custom institutional readiness packages to college placement trustees'
+    ],
+    requirements: [
+      'Experience in B2B EdTech, higher-education sales, or institutional tie-ups',
+      'Strong network with collegiate placement cells across India',
+      'High-energy closer with consultative pitching skills'
+    ]
+  },
+  {
+    id: 'car_3',
+    title: 'Student Success & Placement Coach',
+    department: 'Student Operations',
+    location: 'Remote (India)',
+    type: 'Full-time',
+    experience: '1-3 Years',
+    description: 'Conduct 1-on-1 mock interviews, ATS resume reviews, and salary negotiation workshops for our highest-tier enrolled students.',
+    responsibilities: [
+      'Mentor graduating students through behavioral interview prep (STAR method)',
+      'Host weekly live voice coaching clinics and pitch review circles',
+      'Help students resolve anxiety and navigate multi-round corporate assessments'
+    ],
+    requirements: [
+      'Background in HR, talent acquisition, recruitment, or career counseling',
+      'Empathetic coaching demeanor with constructive feedback delivery',
+      'Comfortable hosting live interactive webinars with 200+ participants'
+    ]
+  }
+];
+
+export const initialTestimonials: Testimonial[] = [
+  {
+    id: 'tst_1',
+    name: 'Pooja Verma',
+    college: 'NIT Kurukshetra, B.Tech 2026',
+    rolePlaced: 'Associate Product Manager',
+    company: 'PhonePe',
+    companyLogo: 'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?auto=format&fit=crop&q=80&w=80',
+    quote: 'I had strong DSA knowledge, but kept stumbling in managerial and behavioral rounds. COMMUNITY.VA taught me how to articulate trade-offs and project real leadership. That made all the difference.',
+    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=150',
+    rating: 5,
+    courseTaken: 'Resume Building & High-Impact Interview Strategy'
+  },
+  {
+    id: 'tst_2',
+    name: 'Siddharth Nair',
+    college: 'SRM University, Computer Science',
+    rolePlaced: 'Business Analyst',
+    company: 'Deloitte',
+    companyLogo: 'https://images.unsplash.com/photo-1560179707-f14e90ef3623?auto=format&fit=crop&q=80&w=80',
+    quote: 'The Salary Negotiation masterclass gave me exact scripts to counter my initial offer. I secured an extra ₹1.8 LPA without feeling awkward or aggressive. Truly life-changing advice.',
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&q=80&w=150',
+    rating: 5,
+    courseTaken: 'The Art of Negotiating Your First Salary'
+  },
+  {
+    id: 'tst_3',
+    name: 'Aishwarya Sen',
+    college: 'St. Xavier\'s College, B.Com',
+    rolePlaced: 'Growth Marketing Specialist',
+    company: 'CRED',
+    companyLogo: 'https://images.unsplash.com/photo-1572021335469-31706a17aaef?auto=format&fit=crop&q=80&w=80',
+    quote: 'As a non-engineering student, breaking into tech seemed daunting. COMMUNITY.VA demystified the business side of startups and taught me how to present data compellingly.',
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=150',
+    rating: 5,
+    courseTaken: 'Demystifying Non-Technical Roles in Tech'
+  }
+];
+
 // LocalStorage Persistence Wrapper
 
 const loadData = <T>(key: string, initialData: T): T => {
@@ -449,6 +722,17 @@ export const db = {
 
   getBlogs: (): BlogArticle[] => loadData('blogs', initialBlogs),
   saveBlogs: (data: BlogArticle[]) => saveData('blogs', data),
+
+  getAmbassadors: (): CampusAmbassador[] => loadData('ambassadors', initialAmbassadors),
+  saveAmbassadors: (data: CampusAmbassador[]) => saveData('ambassadors', data),
+
+  getChallenges: (): WeeklyChallenge[] => loadData('challenges', initialChallenges),
+  saveChallenges: (data: WeeklyChallenge[]) => saveData('challenges', data),
+
+  getLeaderboard: (): LeaderboardEntry[] => loadData('leaderboard', initialLeaderboard),
+  getCollegePartners: (): CollegePartner[] => loadData('collegePartners', initialCollegePartners),
+  getCareerRoles: (): CareerRole[] => loadData('careerRoles', initialCareerRoles),
+  getTestimonials: (): Testimonial[] => loadData('testimonials', initialTestimonials),
 
   // Session user storage (Mock Auth)
   getCurrentUser: (): User | null => {

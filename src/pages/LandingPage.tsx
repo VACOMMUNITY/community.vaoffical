@@ -1,586 +1,630 @@
 import { useState } from 'react';
+import { 
+  Sparkles, ArrowRight, CheckCircle, Star, Calendar, 
+  Trophy, PlayCircle, Clock, MapPin, Gift, ChevronDown, Award, TrendingUp
+} from 'lucide-react';
 import { db } from '../data/mockDatabase';
-import ThemeToggle from '../components/ThemeToggle';
-import { Calendar, BookOpen, Users, ArrowRight, Star, Send, Shield, Award, MessageCircle, Heart, Sparkles, Menu, X } from 'lucide-react';
+import PaymentModal from '../components/PaymentModal';
+import type { NavPage } from '../components/Navbar';
 
 interface LandingPageProps {
-  onNavigate: (view: 'landing' | 'login' | 'register' | 'client' | 'admin') => void;
+  onNavigate: (view: NavPage) => void;
   currentUser: any;
   onLogout: () => void;
 }
 
-export default function LandingPage({ onNavigate, currentUser, onLogout }: LandingPageProps) {
-  const [contactForm, setContactForm] = useState({ name: '', email: '', subject: '', message: '' });
-  const [formSubmitted, setFormSubmitted] = useState(false);
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-
+export default function LandingPage({ onNavigate, currentUser }: LandingPageProps) {
   const events = db.getEvents().slice(0, 3);
   const courses = db.getCourses().slice(0, 3);
+  const testimonials = db.getTestimonials();
+  const partners = db.getCollegePartners();
 
-  const testimonials = [
+  // Payment Modal
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<{ name: string; price: number; type: 'course' | 'event'; id: string } | null>(null);
+
+  // FAQ Accordion
+  const [activeFaq, setActiveFaq] = useState<number | null>(0);
+
+  const faqs = [
     {
-      name: 'Aditya Sen',
-      role: 'Student, DU',
-      comment: 'The salary negotiation workshop helped me secure an internship offer that was 20% higher than their initial quote! Highly recommend COMMUNITY.VA.',
-      avatar: 'https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=100',
-      rating: 5
+      q: 'Why are non-technical skills more important than coding or grades?',
+      a: 'Technical knowledge gets you the interview; non-technical skills get you the offer and determine your promotion velocity. Recruiters evaluate whether you can communicate trade-offs, persuade stakeholders, and resolve conflict under pressure.'
     },
     {
-      name: 'Rohan Sharma',
-      role: 'Associate PM, TechCorp',
-      comment: 'Conquering public speaking was a blocker for my career. The structured videos and Toastmaster strategies on this platform gave me immediate confidence.',
-      avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&q=80&w=100',
-      rating: 5
+      q: 'How are COMMUNITY.VA workshops different from recorded YouTube videos?',
+      a: 'We emphasize deliberate practice. You do not watch slides; you simulate real panel interviews, defend counter-offers against actual HR mentors, and receive immediate rubric-based voice and body language feedback.'
     },
     {
-      name: 'Pooja Hegde',
-      role: 'Business Analyst',
-      comment: 'The ATS compliance checklist in the Resume building course is gold. I went from zero interview calls to three callbacks in a single week.',
-      avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&q=80&w=100',
-      rating: 5
+      q: 'Do I get a verifiable certificate upon completion?',
+      a: 'Yes. Every course and live workshop issues a cryptographic, QR-enabled certificate that prospective recruiters can verify with a single click on LinkedIn or resumes.'
+    },
+    {
+      q: 'How does the Razorpay payment and QR ticket flow work?',
+      a: 'Once you complete payment via UPI, card, or net banking, a digital QR pass is generated immediately on your dashboard. Bring this QR ticket to live venues or Zoom admissions for instant check-in.'
     }
   ];
 
-  const handleContactSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setFormSubmitted(true);
-    setTimeout(() => {
-      setFormSubmitted(false);
-      setContactForm({ name: '', email: '', subject: '', message: '' });
-    }, 3000);
+  const handleQuickRegister = (evt: any) => {
+    if (!currentUser) {
+      onNavigate('login');
+      return;
+    }
+    setSelectedItem({ name: evt.title, price: evt.fees, type: 'event', id: evt.id });
+    setPaymentModalOpen(true);
+  };
+
+  const handleQuickEnroll = (crs: any) => {
+    if (!currentUser) {
+      onNavigate('login');
+      return;
+    }
+    setSelectedItem({ name: crs.title, price: crs.price, type: 'course', id: crs.id });
+    setPaymentModalOpen(true);
+  };
+
+  const handlePaymentSuccess = (method: string, finalAmount: number) => {
+    if (!selectedItem || !currentUser) return;
+
+    if (selectedItem.type === 'event') {
+      const currentRegs = db.getRegistrations();
+      db.saveRegistrations([{
+        id: `reg_${Date.now()}`,
+        userId: currentUser.id,
+        eventId: selectedItem.id,
+        paymentStatus: 'completed',
+        paymentId: `pay_${Date.now()}`,
+        registeredAt: new Date().toISOString()
+      }, ...currentRegs]);
+    } else {
+      const currentEnrolls = db.getEnrollments();
+      db.saveEnrollments([{
+        id: `enr_${Date.now()}`,
+        userId: currentUser.id,
+        courseId: selectedItem.id,
+        progress: 0,
+        completedLessons: [],
+        certificateStatus: 'not_earned',
+        enrolledAt: new Date().toISOString()
+      }, ...currentEnrolls]);
+    }
+
+    const currentPayments = db.getPayments();
+    db.savePayments([{
+      id: `pay_${Date.now()}`,
+      userId: currentUser.id,
+      userName: currentUser.name,
+      userEmail: currentUser.email,
+      amount: finalAmount,
+      paymentMethod: method,
+      status: 'success',
+      date: new Date().toISOString(),
+      itemType: selectedItem.type,
+      itemId: selectedItem.id,
+      itemName: selectedItem.name
+    }, ...currentPayments]);
+
+    onNavigate('client');
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
-      {/* Sticky Header Navigation */}
-      <header className="sticky top-0 z-30 w-full border-b border-slate-200/50 dark:border-slate-800/50 bg-white/85 dark:bg-slate-950/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => onNavigate('landing')}>
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-brand-600 to-red-500 shadow-md">
-              <span className="text-lg font-extrabold text-white">VA</span>
-            </div>
-            <span className="text-xl font-black tracking-tight text-slate-800 dark:text-white">
-              COMMUNITY<span className="text-brand-600">.VA</span>
-            </span>
+    <div className="min-h-screen bg-[#0B0F19] text-slate-100 selection:bg-blue-600 selection:text-white overflow-hidden">
+      
+      {/* Glow Orbs / Ambient Lighting (Linear / Stripe style) */}
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[800px] h-[450px] bg-gradient-to-tr from-blue-600/20 via-indigo-600/20 to-purple-600/10 blur-[130px] rounded-full pointer-events-none"></div>
+      <div className="absolute top-96 right-0 w-[400px] h-[400px] bg-purple-600/10 blur-[120px] rounded-full pointer-events-none"></div>
+
+      {/* 1. HERO SECTION */}
+      <section className="relative pt-16 pb-20 md:pt-24 md:pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="text-center max-w-4xl mx-auto space-y-6">
+          
+          {/* Badge Pill */}
+          <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-gradient-to-r from-blue-500/10 via-indigo-500/10 to-purple-500/10 px-4 py-1.5 text-xs font-bold text-indigo-300 backdrop-blur-md shadow-inner shadow-indigo-500/10 animate-fade-in">
+            <Sparkles className="h-3.5 w-3.5 text-blue-400" />
+            <span>India's Leading Non-Technical EdTech Startup</span>
+            <span className="h-1.5 w-1.5 rounded-full bg-indigo-400"></span>
+            <span className="text-white font-medium">Batch 2026 Open</span>
           </div>
 
-          <nav className="hidden md:flex items-center gap-8 text-sm font-semibold text-slate-600 dark:text-slate-300">
-            <a href="#about" className="hover:text-brand-600 dark:hover:text-brand-450 transition">About</a>
-            <a href="#events" className="hover:text-brand-600 dark:hover:text-brand-450 transition">Events</a>
-            <a href="#courses" className="hover:text-brand-600 dark:hover:text-brand-450 transition">Courses</a>
-            <a href="#testimonials" className="hover:text-brand-600 dark:hover:text-brand-450 transition">Testimonials</a>
-            <a href="#contact" className="hover:text-brand-600 dark:hover:text-brand-450 transition">Contact</a>
-          </nav>
-
-          <div className="flex items-center gap-4">
-            <ThemeToggle />
-            {currentUser ? (
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => onNavigate(currentUser.role === 'admin' ? 'admin' : 'client')}
-                  className="rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 px-4 py-2 text-sm font-bold text-slate-800 dark:text-white transition"
-                >
-                  Dashboard
-                </button>
-                <button
-                  onClick={onLogout}
-                  className="hidden sm:inline-block text-xs font-semibold text-slate-500 dark:text-slate-450 hover:text-red-500 transition"
-                >
-                  Log out
-                </button>
-              </div>
-            ) : (
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => onNavigate('login')}
-                  className="text-sm font-bold text-slate-700 dark:text-slate-300 hover:text-brand-600 px-3 py-2 transition"
-                >
-                  Login
-                </button>
-                <button
-                  onClick={() => onNavigate('register')}
-                  className="rounded-xl bg-brand-600 hover:bg-brand-700 px-4 py-2 text-sm font-bold text-white shadow-md shadow-brand-500/10 hover:shadow-brand-500/20 transition hover:scale-102"
-                >
-                  Join Us
-                </button>
-              </div>
-            )}
-            
-            {/* Hamburger Button */}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="md:hidden p-2 rounded-xl border border-slate-200/50 dark:border-slate-800/50 text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-900 transition focus:outline-none"
-              aria-label="Toggle Menu"
-            >
-              {mobileMenuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Dropdown Panel */}
-        {mobileMenuOpen && (
-          <div className="md:hidden border-t border-slate-200/20 dark:border-slate-800/50 bg-white/95 dark:bg-slate-950/95 backdrop-blur-md px-6 py-4 space-y-3 shadow-lg">
-            <a 
-              href="#about" 
-              onClick={() => setMobileMenuOpen(false)}
-              className="block text-sm font-bold text-slate-700 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-450 transition"
-            >
-              About
-            </a>
-            <a 
-              href="#events" 
-              onClick={() => setMobileMenuOpen(false)}
-              className="block text-sm font-bold text-slate-700 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-450 transition"
-            >
-              Events
-            </a>
-            <a 
-              href="#courses" 
-              onClick={() => setMobileMenuOpen(false)}
-              className="block text-sm font-bold text-slate-700 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-450 transition"
-            >
-              Courses
-            </a>
-            <a 
-              href="#testimonials" 
-              onClick={() => setMobileMenuOpen(false)}
-              className="block text-sm font-bold text-slate-700 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-450 transition"
-            >
-              Testimonials
-            </a>
-            <a 
-              href="#contact" 
-              onClick={() => setMobileMenuOpen(false)}
-              className="block text-sm font-bold text-slate-700 dark:text-slate-300 hover:text-brand-600 dark:hover:text-brand-450 transition"
-            >
-              Contact
-            </a>
-            {currentUser && (
-              <button
-                onClick={() => { onLogout(); setMobileMenuOpen(false); }}
-                className="w-full text-left text-sm font-bold text-red-500 hover:text-red-655 transition pt-2 border-t border-slate-100 dark:border-slate-800/60"
-              >
-                Log out
-              </button>
-            )}
-          </div>
-        )}
-      </header>
-
-      {/* Hero Section */}
-      <section className="relative overflow-hidden py-20 lg:py-32">
-        {/* Animated Background blobs */}
-        <div className="absolute top-1/4 left-1/10 h-72 w-72 rounded-full bg-brand-400/10 dark:bg-brand-500/5 blur-3xl animate-float"></div>
-        <div className="absolute bottom-1/4 right-1/10 h-96 w-96 rounded-full bg-red-400/10 dark:bg-red-500/5 blur-3xl animate-float [animation-delay:2s]"></div>
-
-        <div className="mx-auto max-w-7xl px-6 text-center">
-          <div className="inline-flex items-center gap-1.5 rounded-full border border-brand-200/50 dark:border-brand-800/30 bg-brand-50/50 dark:bg-brand-950/20 px-4 py-1.5 text-xs font-bold text-brand-700 dark:text-brand-400 mb-6 animate-pulse-slow">
-            <Sparkles className="h-3.5 w-3.5" />
-            Developing Tomorrow's Leaders
-          </div>
-
-          <h1 className="mx-auto max-w-4xl text-4xl font-extrabold tracking-tight text-slate-900 dark:text-white sm:text-5xl md:text-6xl lg:text-7xl leading-tight">
-            Empowering Students with Essential{' '}
-            <span className="bg-gradient-to-r from-brand-600 to-red-500 bg-clip-text text-transparent">
-              Non-Technical Skills
+          {/* Headline */}
+          <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black tracking-tight text-white leading-[1.1]">
+            Learn Beyond the <br className="hidden sm:inline" />
+            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-500">
+              Classroom.
             </span>
           </h1>
 
-          <p className="mx-auto mt-6 max-w-2xl text-base sm:text-lg text-slate-500 dark:text-slate-400">
-            Go beyond the code. Build the communication, leadership, career readiness, and networking capabilities crucial to thrive in the professional world.
+          {/* Subtitle */}
+          <p className="text-sm sm:text-lg text-slate-300 max-w-2xl mx-auto leading-relaxed">
+            The career accelerator equipping ambitious college students and graduates with elite non-technical superpowers: high-stakes negotiation, executive storytelling, emotional intelligence, and interview-winning presence.
           </p>
 
-          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
+          {/* CTA Group */}
+          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
             <button
-              onClick={() => onNavigate('register')}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-xl bg-brand-600 hover:bg-brand-700 px-8 py-4 text-base font-bold text-white shadow-lg shadow-brand-500/20 hover:shadow-brand-500/30 transition hover:scale-103 duration-200"
+              onClick={() => onNavigate(currentUser ? 'client' : 'register')}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 px-7 py-3.5 text-xs sm:text-sm font-extrabold text-white shadow-xl shadow-indigo-500/30 transition-all hover:scale-102 cursor-pointer"
             >
-              Get Started for Free
-              <ArrowRight className="h-5 w-5" />
+              <span>Join Community</span>
+              <ArrowRight className="h-4 w-4" />
             </button>
-            <a
-              href="#courses"
-              className="w-full sm:w-auto flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-800 bg-white/80 dark:bg-slate-900/50 backdrop-blur px-8 py-4 text-base font-bold text-slate-700 dark:text-slate-350 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
+            <button
+              onClick={() => onNavigate('events')}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/5 hover:bg-white/10 px-7 py-3.5 text-xs sm:text-sm font-bold text-slate-200 backdrop-blur-md transition cursor-pointer"
             >
-              Explore Courses
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* Statistics Section */}
-      <section className="border-y border-slate-200/50 dark:border-slate-850 bg-white dark:bg-slate-900/40 py-12 transition-colors duration-300">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-3 text-center">
-            <div className="flex flex-col items-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-100 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 mb-4">
-                <Users className="h-6 w-6" />
-              </div>
-              <span className="text-4xl font-extrabold text-slate-950 dark:text-white">1,200+</span>
-              <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 mt-1">Active Community Members</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-100 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 mb-4">
-                <Calendar className="h-6 w-6" />
-              </div>
-              <span className="text-4xl font-extrabold text-slate-950 dark:text-white">45+</span>
-              <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 mt-1">Workshops conducted</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-red-100 dark:bg-red-950/40 text-red-650 dark:text-red-400 mb-4">
-                <BookOpen className="h-6 w-6" />
-              </div>
-              <span className="text-4xl font-extrabold text-slate-950 dark:text-white">12+</span>
-              <span className="text-sm font-semibold text-slate-500 dark:text-slate-400 mt-1">Professional Courses</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* About Section */}
-      <section id="about" className="py-20 lg:py-32">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-brand-600 dark:text-brand-400">Who We Are</span>
-              <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white sm:text-4xl mt-2">
-                Bridging the Gap Between Technical Education and Professional Success
-              </h2>
-              <p className="mt-6 text-slate-500 dark:text-slate-400 leading-relaxed">
-                Most academic programs focus heavily on hard technical capabilities, leaving young graduates under-prepared for the human element of corporate life. 
-                COMMUNITY.VA was created to empower students and young professionals with key interpersonal toolkits.
-              </p>
-              
-              <div className="mt-8 space-y-4">
-                <div className="flex items-start gap-3">
-                  <div className="mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-950/50 text-brand-600 dark:text-brand-400">
-                    <Shield className="h-3.5 w-3.5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-800 dark:text-white text-sm">Action-Backed Training</h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">No dry theories. Every course offers downloadable frameworks, checklist PDFs, and practical speaking triggers.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-brand-100 dark:bg-brand-950/50 text-brand-600 dark:text-brand-400">
-                    <Award className="h-3.5 w-3.5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-800 dark:text-white text-sm">Verified Credentials</h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Earn verifiable certificates upon 100% course completions, instantly exportable for LinkedIn.</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="mt-1 flex h-5 w-5 items-center justify-center rounded-full bg-red-100 dark:bg-red-950/50 text-red-650 dark:text-red-400">
-                    <MessageCircle className="h-3.5 w-3.5" />
-                  </div>
-                  <div>
-                    <h4 className="font-bold text-slate-800 dark:text-white text-sm">Vibrant Peer Forum</h4>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">Ask questions, share advice, and practice networking directly in our collaborative community boards.</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="relative">
-              {/* Image with decorative border */}
-              <div className="aspect-[4/3] rounded-2xl bg-gradient-to-tr from-brand-600 to-red-500 p-1 shadow-2xl">
-                <img
-                  src="https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=800"
-                  alt="About COMMUNITY.VA"
-                  className="h-full w-full object-cover rounded-2xl"
-                />
-              </div>
-              <div className="absolute -bottom-6 -left-6 rounded-2xl glass-card p-4 flex items-center gap-3">
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-650 text-white">
-                  <Heart className="h-5 w-5" />
-                </div>
-                <div>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">Join Rating</p>
-                  <p className="font-extrabold text-slate-800 dark:text-white">4.9/5 Student Reviews</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Featured Events Section */}
-      <section id="events" className="py-20 bg-white dark:bg-slate-900 transition-colors duration-300">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-brand-600 dark:text-brand-400">Interactive Learning</span>
-              <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white sm:text-4xl mt-2">Upcoming Events & Workshops</h2>
-            </div>
-            <button 
-              onClick={() => onNavigate('register')}
-              className="mt-4 sm:mt-0 flex items-center gap-1 text-sm font-bold text-brand-600 hover:text-brand-700 transition group"
-            >
-              View All Events
-              <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition" />
+              <Calendar className="h-4 w-4 text-blue-400" />
+              <span>Explore Events & Cohorts</span>
             </button>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {events.map((e) => (
-              <div 
-                key={e.id} 
-                className="flex flex-col overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 shadow-sm hover:shadow-lg transition duration-300 hover:scale-101"
-              >
-                <div className="h-48 overflow-hidden">
-                  <img src={e.banner} alt={e.title} className="h-full w-full object-cover" />
-                </div>
-                <div className="flex flex-1 flex-col p-6">
-                  <span className="self-start text-[10px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/40 px-2.5 py-1 rounded-full mb-3">
-                    {e.category}
-                  </span>
-                  <h3 className="font-extrabold text-slate-900 dark:text-white line-clamp-1 mb-2 hover:text-brand-650 transition cursor-pointer">
-                    {e.title}
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed flex-1 mb-4">
-                    {e.description}
-                  </p>
-                  <div className="border-t border-slate-200/50 dark:border-slate-800 pt-4 flex justify-between items-center text-xs font-semibold">
-                    <span className="text-slate-400 dark:text-slate-500">{e.date}</span>
-                    <span className="text-slate-900 dark:text-white font-bold">{e.fees === 0 ? 'Free' : `₹${e.fees}`}</span>
-                  </div>
-                  <button
-                    onClick={() => onNavigate('register')}
-                    className="w-full mt-4 rounded-xl bg-slate-800 hover:bg-slate-700 dark:bg-slate-850 dark:hover:bg-slate-800 py-2.5 text-center text-xs font-bold text-white transition"
-                  >
-                    Register Now
-                  </button>
-                </div>
-              </div>
-            ))}
+          {/* Social Proof Tags */}
+          <div className="pt-6 flex flex-wrap items-center justify-center gap-4 sm:gap-6 text-xs text-slate-400">
+            <span className="flex items-center gap-1.5">
+              <CheckCircle className="h-4 w-4 text-green-400" /> 25,000+ Students Upskilled
+            </span>
+            <span className="flex items-center gap-1.5">
+              <CheckCircle className="h-4 w-4 text-blue-400" /> 45+ College Chapters
+            </span>
+            <span className="flex items-center gap-1.5">
+              <CheckCircle className="h-4 w-4 text-purple-400" /> 94% Placement Conversion
+            </span>
           </div>
-        </div>
-      </section>
 
-      {/* Popular Courses Section */}
-      <section id="courses" className="py-20 bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-12">
-            <div>
-              <span className="text-xs font-bold uppercase tracking-widest text-brand-600 dark:text-brand-400">Curriculum</span>
-              <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white sm:text-4xl mt-2">Popular Courses</h2>
+        </div>
+
+        {/* Hero Interactive Mockup / Floating Card */}
+        <div className="mt-14 relative max-w-5xl mx-auto rounded-3xl border border-white/15 bg-gradient-to-b from-slate-900/80 to-slate-950/90 p-4 sm:p-6 backdrop-blur-2xl shadow-2xl shadow-indigo-500/10">
+          <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-6">
+            <div className="flex items-center gap-2">
+              <span className="h-3 w-3 rounded-full bg-red-500/80"></span>
+              <span className="h-3 w-3 rounded-full bg-yellow-500/80"></span>
+              <span className="h-3 w-3 rounded-full bg-green-500/80"></span>
+              <span className="ml-3 text-[11px] font-mono text-slate-500">communityva.platform/accelerator-v2</span>
             </div>
-            <button 
-              onClick={() => onNavigate('register')}
-              className="mt-4 sm:mt-0 flex items-center gap-1 text-sm font-bold text-brand-600 hover:text-brand-700 transition group"
-            >
-              Browse All Courses
-              <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition" />
-            </button>
+            <div className="flex items-center gap-2">
+              <span className="rounded-md bg-green-500/10 border border-green-500/20 px-2 py-0.5 text-[10px] font-bold text-green-400 flex items-center gap-1">
+                <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-ping"></span>
+                Active Workshop Live
+              </span>
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {courses.map((c) => (
-              <div 
-                key={c.id} 
-                className="flex flex-col overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-lg transition duration-300 hover:scale-101"
-              >
-                <div className="h-48 overflow-hidden">
-                  <img src={c.thumbnail} alt={c.title} className="h-full w-full object-cover" />
-                </div>
-                <div className="flex flex-1 flex-col p-6">
-                  <div className="flex justify-between items-center mb-3">
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-brand-600 dark:text-brand-400 bg-brand-50 dark:bg-brand-950/40 px-2.5 py-1 rounded-full">
-                      {c.category}
-                    </span>
-                    <div className="flex items-center gap-1 text-xs text-amber-500 font-bold">
-                      <Star className="h-3.5 w-3.5 fill-current" />
-                      {c.rating}
-                    </div>
-                  </div>
-                  <h3 className="font-extrabold text-slate-900 dark:text-white line-clamp-1 mb-2">
-                    {c.title}
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 line-clamp-2 leading-relaxed flex-1 mb-4">
-                    {c.description}
-                  </p>
-                  <div className="border-t border-slate-200/50 dark:border-slate-800 pt-4 flex justify-between items-center text-xs font-semibold">
-                    <span className="text-slate-400 dark:text-slate-500">{c.instructor}</span>
-                    <span className="text-brand-600 dark:text-brand-400 font-bold text-sm">₹{c.price}</span>
-                  </div>
-                  <button
-                    onClick={() => onNavigate('register')}
-                    className="w-full mt-4 rounded-xl bg-brand-600 hover:bg-brand-700 py-2.5 text-center text-xs font-bold text-white transition"
-                  >
-                    Enroll Now
-                  </button>
-                </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
+              <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider block">Career Impact</span>
+              <h4 className="font-extrabold text-sm text-white">ATS Resume & STAR Prep</h4>
+              <p className="text-xs text-slate-400">Transform passive college projects into quantifiable business accomplishments recruiters hunt for.</p>
+              <div className="pt-2 text-xs font-bold text-green-400 flex items-center gap-1">
+                <TrendingUp className="h-3.5 w-3.5" /> +3.2x Interview Callbacks
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Testimonials Section */}
-      <section id="testimonials" className="py-20 bg-white dark:bg-slate-900 transition-colors duration-300">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="text-center mb-16">
-            <span className="text-xs font-bold uppercase tracking-widest text-brand-600 dark:text-brand-400">Success Stories</span>
-            <h2 className="text-3xl font-extrabold text-slate-900 dark:text-white sm:text-4xl mt-2">What Our Members Say</h2>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map((t, idx) => (
-              <div key={idx} className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 p-6 flex flex-col justify-between shadow-sm">
-                <div>
-                  <div className="flex gap-1 mb-4">
-                    {[...Array(t.rating)].map((_, i) => (
-                      <Star key={i} className="h-4.5 w-4.5 text-amber-500 fill-current" />
-                    ))}
-                  </div>
-                  <p className="text-sm italic text-slate-600 dark:text-slate-355 leading-relaxed">
-                    "{t.comment}"
-                  </p>
-                </div>
-                <div className="mt-6 flex items-center gap-3 pt-4 border-t border-slate-200/40 dark:border-slate-850">
-                  <img src={t.avatar} alt={t.name} className="h-10 w-10 rounded-full object-cover" />
-                  <div>
-                    <h4 className="text-sm font-bold text-slate-800 dark:text-white">{t.name}</h4>
-                    <p className="text-xs text-slate-400 dark:text-slate-500">{t.role}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Contact Section */}
-      <section id="contact" className="py-20 bg-slate-50 dark:bg-slate-950 transition-colors duration-300">
-        <div className="mx-auto max-w-4xl px-6">
-          <div className="rounded-3xl border border-slate-200/60 dark:border-slate-800 bg-white dark:bg-slate-900 p-8 sm:p-12 shadow-xl">
-            <div className="text-center mb-8">
-              <span className="text-xs font-bold uppercase tracking-widest text-brand-600 dark:text-brand-400">Get in Touch</span>
-              <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white sm:text-3xl mt-1">Have Questions? Reach Out!</h2>
-              <p className="text-xs text-slate-450 mt-1">Our support staff usually responds in 24 hours.</p>
             </div>
 
-            {formSubmitted ? (
-              <div className="flex flex-col items-center justify-center py-10 text-center animate-fade-in-up">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-150 text-green-600 dark:bg-green-950/30 dark:text-green-400 mb-4">
-                  <Send className="h-6 w-6" />
-                </div>
-                <h4 className="font-extrabold text-slate-850 dark:text-white text-lg">Message Sent Successfully!</h4>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">Thank you for contacting us. We will get back to you shortly.</p>
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
+              <span className="text-[10px] font-bold text-purple-400 uppercase tracking-wider block">Real Compensation</span>
+              <h4 className="font-extrabold text-sm text-white">First Salary Counter-Offer</h4>
+              <p className="text-xs text-slate-400">Exact psychological negotiation scripts proven to yield ₹1.5L to ₹3L higher compensation packages.</p>
+              <div className="pt-2 text-xs font-bold text-purple-300 flex items-center gap-1">
+                <Award className="h-3.5 w-3.5" /> ₹2,40,000 Avg. Upside
               </div>
-            ) : (
-              <form onSubmit={handleContactSubmit} className="space-y-4">
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Your Name</label>
-                    <input
-                      type="text"
-                      required
-                      value={contactForm.name}
-                      onChange={(e) => setContactForm({ ...contactForm, name: e.target.value })}
-                      className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white"
-                      placeholder="e.g. John Doe"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Email Address</label>
-                    <input
-                      type="email"
-                      required
-                      value={contactForm.email}
-                      onChange={(e) => setContactForm({ ...contactForm, email: e.target.value })}
-                      className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white"
-                      placeholder="e.g. john@example.com"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Subject</label>
-                  <input
-                    type="text"
-                    required
-                    value={contactForm.subject}
-                    onChange={(e) => setContactForm({ ...contactForm, subject: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white"
-                    placeholder="How can we help you?"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Your Message</label>
-                  <textarea
-                    rows={4}
-                    required
-                    value={contactForm.message}
-                    onChange={(e) => setContactForm({ ...contactForm, message: e.target.value })}
-                    className="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white"
-                    placeholder="Type your message here..."
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full flex items-center justify-center gap-2 rounded-xl bg-brand-600 hover:bg-brand-700 py-3.5 text-center text-sm font-bold text-white transition"
-                >
-                  Send Message
-                  <Send className="h-4 w-4" />
-                </button>
-              </form>
-            )}
+            </div>
+
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-2">
+              <span className="text-[10px] font-bold text-emerald-400 uppercase tracking-wider block">Campus Growth</span>
+              <h4 className="font-extrabold text-sm text-white">Campus Ambassador Program</h4>
+              <p className="text-xs text-slate-400">Lead soft-skill clubs in your university, earn official LORs, network with corporate CXOs, and earn stipends.</p>
+              <div className="pt-2 text-xs font-bold text-emerald-400 flex items-center gap-1">
+                <Gift className="h-3.5 w-3.5" /> ₹500 Payout / Peer Enrolled
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-200/50 dark:border-slate-850 bg-white dark:bg-slate-900 py-12 text-slate-500 dark:text-slate-400 transition-colors duration-300">
-        <div className="mx-auto max-w-7xl px-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-brand-600 to-red-500 text-white font-extrabold text-sm">
-                  VA
-                </div>
-                <span className="text-lg font-black tracking-tight text-slate-800 dark:text-white">
-                  COMMUNITY.VA
+      {/* 2. COLLEGE PARTNERS TICKER / MARQUEE */}
+      <section className="py-10 border-y border-white/10 bg-slate-950/60 backdrop-blur-md">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+          <span className="text-xs font-extrabold uppercase tracking-widest text-slate-400 block mb-6">
+            Trusted by Leaders, TPOs & Students Across 45+ Premier Indian Campuses
+          </span>
+          <div className="flex flex-wrap items-center justify-center gap-8 sm:gap-12 opacity-85">
+            {partners.map(p => (
+              <div key={p.id} className="flex items-center gap-2 group cursor-pointer" onClick={() => onNavigate('for-colleges')}>
+                <span className="text-xl">{p.logo}</span>
+                <span className="text-xs sm:text-sm font-extrabold text-slate-300 group-hover:text-white transition">
+                  {p.shortName}
                 </span>
               </div>
-              <p className="text-xs leading-relaxed">
-                Empowering the youth with communication, resume crafting, public speaking, and EQ capabilities. Let's make career growth accessible together.
-              </p>
-            </div>
-            
-            <div>
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4">Quick Links</h4>
-              <ul className="space-y-2 text-xs">
-                <li><a href="#about" className="hover:text-brand-600 transition">About Us</a></li>
-                <li><a href="#events" className="hover:text-brand-600 transition">Upcoming Workshops</a></li>
-                <li><a href="#courses" className="hover:text-brand-600 transition">Self-Paced Courses</a></li>
-                <li><a href="#testimonials" className="hover:text-brand-600 transition">Testimonials</a></li>
-              </ul>
-            </div>
+            ))}
+          </div>
+        </div>
+      </section>
 
-            <div>
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4">Resources</h4>
-              <ul className="space-y-2 text-xs">
-                <li><span className="hover:text-brand-600 transition cursor-pointer" onClick={() => onNavigate('login')}>Blog Section</span></li>
-                <li><span className="hover:text-brand-600 transition cursor-pointer" onClick={() => onNavigate('login')}>Discussion Forum</span></li>
-                <li><span className="hover:text-brand-600 transition cursor-pointer" onClick={() => onNavigate('login')}>Student Support</span></li>
-                <li><span className="hover:text-brand-600 transition cursor-pointer" onClick={() => onNavigate('login')}>Privacy & Terms</span></li>
-              </ul>
-            </div>
+      {/* 3. ANIMATED METRICS / GROWTH SECTION */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="p-6 rounded-3xl border border-white/10 bg-slate-900/60 backdrop-blur-xl text-center space-y-1">
+            <span className="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">25,000+</span>
+            <h4 className="text-sm font-bold text-white mt-1">Students Certified</h4>
+            <p className="text-xs text-slate-400">Graduates equipped with high-impact soft skills</p>
+          </div>
+          <div className="p-6 rounded-3xl border border-white/10 bg-slate-900/60 backdrop-blur-xl text-center space-y-1">
+            <span className="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-400 to-pink-400">120+</span>
+            <h4 className="text-sm font-bold text-white mt-1">Live Masterclasses</h4>
+            <p className="text-xs text-slate-400">Hands-on workshops hosted by corporate executives</p>
+          </div>
+          <div className="p-6 rounded-3xl border border-white/10 bg-slate-900/60 backdrop-blur-xl text-center space-y-1">
+            <span className="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-400">45+</span>
+            <h4 className="text-sm font-bold text-white mt-1">College Chapters</h4>
+            <p className="text-xs text-slate-400">Active campus student networks nationwide</p>
+          </div>
+          <div className="p-6 rounded-3xl border border-white/10 bg-slate-900/60 backdrop-blur-xl text-center space-y-1">
+            <span className="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-orange-400">94%</span>
+            <h4 className="text-sm font-bold text-white mt-1">Placement Boost</h4>
+            <p className="text-xs text-slate-400">Higher confidence during high-stakes panel rounds</p>
+          </div>
+        </div>
+      </section>
 
-            <div>
-              <h4 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-4">Connect With Us</h4>
-              <div className="flex gap-3 text-xs mb-4">
-                <a href="#" className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-350 hover:bg-brand-100 dark:hover:bg-brand-950/40 hover:text-brand-600 transition">Tw</a>
-                <a href="#" className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-350 hover:bg-brand-100 dark:hover:bg-brand-950/40 hover:text-brand-600 transition">Ln</a>
-                <a href="#" className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-350 hover:bg-brand-100 dark:hover:bg-brand-950/40 hover:text-brand-600 transition">Ig</a>
-                <a href="#" className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-350 hover:bg-brand-100 dark:hover:bg-brand-950/40 hover:text-brand-600 transition">Yt</a>
+      {/* 4. FEATURED EVENTS SECTION */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-10">
+          <div>
+            <span className="text-xs font-extrabold uppercase tracking-widest text-blue-400 block mb-1">Live Learning</span>
+            <h2 className="text-2xl sm:text-4xl font-black text-white">Upcoming Live Cohorts & Masterclasses</h2>
+            <p className="text-xs sm:text-sm text-slate-400 mt-1">Direct interactive sessions with real-time feedback from top mentors.</p>
+          </div>
+          <button
+            onClick={() => onNavigate('events')}
+            className="flex items-center gap-1.5 text-xs font-bold text-blue-400 hover:text-blue-300 transition cursor-pointer"
+          >
+            <span>View All Events</span>
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {events.map(evt => {
+            const seatsPercent = Math.round(((evt.seatsTotal - evt.seatsAvailable) / evt.seatsTotal) * 100);
+            return (
+              <div 
+                key={evt.id}
+                className="group flex flex-col rounded-3xl border border-white/10 bg-slate-900/60 hover:bg-slate-900/90 backdrop-blur-xl p-5 transition-all duration-300 hover:border-blue-500/40 hover:-translate-y-1 shadow-xl"
+              >
+                <div className="relative h-44 w-full overflow-hidden rounded-2xl bg-slate-800">
+                  <img src={evt.banner} alt={evt.title} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80"></div>
+                  <span className="absolute top-3 left-3 rounded-lg bg-blue-600 px-2.5 py-1 text-[10px] font-extrabold uppercase text-white shadow">
+                    {evt.category}
+                  </span>
+                  <div className="absolute bottom-3 left-3 right-3 flex justify-between text-[11px] font-semibold text-slate-200">
+                    <span className="bg-black/60 px-2 py-0.5 rounded-md flex items-center gap-1">
+                      <Clock className="h-3 w-3 text-blue-400" /> {evt.time}
+                    </span>
+                    <span className="bg-black/60 px-2 py-0.5 rounded-md font-bold text-white">
+                      {evt.fees === 0 ? 'Free' : `₹${evt.fees}`}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="flex-1 flex flex-col pt-4">
+                  <span className="text-[11px] font-semibold text-blue-400">{evt.date}</span>
+                  <h3 className="font-extrabold text-base text-white mt-1 group-hover:text-blue-400 transition leading-snug line-clamp-2">
+                    {evt.title}
+                  </h3>
+                  <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed">
+                    {evt.description}
+                  </p>
+
+                  <div className="mt-4 pt-3 border-t border-white/10 text-xs text-slate-400 space-y-2">
+                    <div className="flex items-center gap-1.5 truncate">
+                      <MapPin className="h-3.5 w-3.5 text-slate-500 shrink-0" />
+                      <span className="truncate">{evt.venue}</span>
+                    </div>
+
+                    <div>
+                      <div className="flex justify-between text-[10px] text-slate-400 mb-1">
+                        <span>{evt.seatsAvailable} seats available</span>
+                        <span className="font-bold text-white">{seatsPercent}% booked</span>
+                      </div>
+                      <div className="h-1.5 w-full rounded-full bg-white/10 overflow-hidden">
+                        <div className="h-full rounded-full bg-gradient-to-r from-blue-500 to-indigo-500" style={{ width: `${seatsPercent}%` }}></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    onClick={() => handleQuickRegister(evt)}
+                    className="mt-5 w-full flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-500/20 transition cursor-pointer"
+                  >
+                    <span>{evt.fees === 0 ? 'Register Free' : 'Secure Pass (₹' + evt.fees + ')'}</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
-              <p className="text-[10px] text-slate-400">© 2026 COMMUNITY.VA. All rights reserved.</p>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 5. POPULAR COURSES SECTION */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-10">
+          <div>
+            <span className="text-xs font-extrabold uppercase tracking-widest text-purple-400 block mb-1">Self-Paced Learning</span>
+            <h2 className="text-2xl sm:text-4xl font-black text-white">Most Enrolled Non-Technical Curricula</h2>
+            <p className="text-xs sm:text-sm text-slate-400 mt-1">High-yield frameworks with downloadable PDF guides and verifiable certifications.</p>
+          </div>
+          <button
+            onClick={() => onNavigate('courses')}
+            className="flex items-center gap-1.5 text-xs font-bold text-purple-400 hover:text-purple-300 transition cursor-pointer"
+          >
+            <span>View All Courses</span>
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {courses.map(crs => (
+            <div 
+              key={crs.id}
+              className="group flex flex-col rounded-3xl border border-white/10 bg-slate-900/60 hover:bg-slate-900/90 backdrop-blur-xl p-5 transition-all duration-300 hover:border-purple-500/40 hover:-translate-y-1 shadow-xl"
+            >
+              <div className="relative h-44 w-full overflow-hidden rounded-2xl bg-slate-800">
+                <img src={crs.thumbnail} alt={crs.title} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80"></div>
+                <span className="absolute top-3 left-3 rounded-lg bg-purple-600 px-2.5 py-1 text-[10px] font-extrabold uppercase text-white shadow">
+                  {crs.category}
+                </span>
+                <div className="absolute bottom-3 left-3 right-3 flex justify-between text-[11px] font-semibold text-slate-200">
+                  <span className="bg-black/60 px-2 py-0.5 rounded-md flex items-center gap-1 text-amber-400">
+                    <Star className="h-3 w-3 fill-current" /> {crs.rating} ({crs.reviewsCount})
+                  </span>
+                  <span className="bg-black/60 px-2 py-0.5 rounded-md font-bold text-white">
+                    ₹{crs.price}
+                  </span>
+                </div>
+              </div>
+
+              <div className="flex-1 flex flex-col pt-4">
+                <span className="text-[11px] font-semibold text-purple-400">{crs.instructor}</span>
+                <h3 className="font-extrabold text-base text-white mt-1 group-hover:text-purple-400 transition leading-snug line-clamp-2">
+                  {crs.title}
+                </h3>
+                <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed">
+                  {crs.description}
+                </p>
+
+                <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between text-[11px] text-slate-400">
+                  <span className="flex items-center gap-1">
+                    <PlayCircle className="h-3.5 w-3.5 text-purple-400" /> {crs.videos.length} Modules
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Award className="h-3.5 w-3.5 text-amber-400" /> Certificate
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => handleQuickEnroll(crs)}
+                  className="mt-5 w-full flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 py-2.5 text-xs font-bold text-white shadow-md shadow-purple-500/20 transition cursor-pointer"
+                >
+                  <span>Enroll for ₹{crs.price}</span>
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 6. COMPARISON: WHY GRADES AREN'T ENOUGH */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
+        <div className="p-8 sm:p-12 rounded-3xl border border-white/15 bg-gradient-to-r from-blue-950/30 via-slate-900/60 to-purple-950/30 backdrop-blur-2xl shadow-2xl">
+          <div className="text-center max-w-2xl mx-auto mb-10">
+            <span className="text-xs font-extrabold uppercase tracking-widest text-indigo-400 block mb-2">The Unspoken Reality</span>
+            <h2 className="text-2xl sm:text-4xl font-black text-white">Why Pure Academic Grades Aren’t Enough</h2>
+            <p className="text-xs sm:text-sm text-slate-400 mt-2">
+              Compare how the traditional path stacks against the COMMUNITY.VA competitive edge.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="p-6 rounded-2xl border border-red-500/20 bg-red-950/10 space-y-3">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-red-400">Traditional College Path</span>
+              <ul className="space-y-2.5 text-xs text-slate-300">
+                <li className="flex items-start gap-2">
+                  <span className="text-red-400 font-bold">✕</span>
+                  <span>Memorizes formulas without knowing how to articulate complex trade-offs to business leaders</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-400 font-bold">✕</span>
+                  <span>Submits generic 2-page academic resumes rejected by modern corporate ATS filters</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-400 font-bold">✕</span>
+                  <span>Accepts the first salary offer out of fear of seeming ungrateful or aggressive</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-red-400 font-bold">✕</span>
+                  <span>Freezes during high-pressure behavioral panel questions (STAR method deficits)</span>
+                </li>
+              </ul>
+            </div>
+
+            <div className="p-6 rounded-2xl border border-green-500/30 bg-green-950/10 space-y-3">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-green-400">The COMMUNITY.VA Advantage</span>
+              <ul className="space-y-2.5 text-xs text-slate-200">
+                <li className="flex items-start gap-2">
+                  <span className="text-green-400 font-bold">✓</span>
+                  <span>Masters executive storytelling and presents projects with quantifiable business value</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-400 font-bold">✓</span>
+                  <span>Builds high-converting 1-page ATS resumes benchmarked with corporate recruiters</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-400 font-bold">✓</span>
+                  <span>Negotiates starting compensation with professional scripts (+₹2.4 LPA average increase)</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-green-400 font-bold">✓</span>
+                  <span>Radiates stage confidence, active listening, and calm executive presence</span>
+                </li>
+              </ul>
             </div>
           </div>
         </div>
-      </footer>
+      </section>
+
+      {/* 7. STUDENT SUCCESS TESTIMONIALS */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="text-center max-w-2xl mx-auto mb-12">
+          <span className="text-xs font-extrabold uppercase tracking-widest text-blue-400 block mb-1">Student Outcomes</span>
+          <h2 className="text-2xl sm:text-4xl font-black text-white">Hear from Placed Graduates</h2>
+          <p className="text-xs sm:text-sm text-slate-400 mt-2">
+            Real stories from college students who landed dream roles at top tech and consulting firms.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {testimonials.map(tst => (
+            <div key={tst.id} className="p-6 rounded-3xl border border-white/10 bg-slate-900/60 backdrop-blur-xl flex flex-col justify-between space-y-4">
+              <div className="space-y-3">
+                <div className="flex items-center gap-1 text-amber-400">
+                  {[...Array(tst.rating)].map((_, i) => (
+                    <Star key={i} className="h-4 w-4 fill-current" />
+                  ))}
+                </div>
+                <p className="text-xs text-slate-300 leading-relaxed italic">
+                  "{tst.quote}"
+                </p>
+              </div>
+
+              <div className="pt-4 border-t border-white/10 flex items-center gap-3">
+                <img src={tst.avatar} alt={tst.name} className="h-11 w-11 rounded-full object-cover border-2 border-indigo-500" />
+                <div>
+                  <h4 className="font-bold text-xs sm:text-sm text-white">{tst.name}</h4>
+                  <span className="text-[11px] text-indigo-400 font-semibold block">{tst.rolePlaced} at {tst.company}</span>
+                  <span className="text-[10px] text-slate-500">{tst.college}</span>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 8. COMMUNITY HIGHLIGHTS & WEEKLY CHALLENGES PREVIEW */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="p-8 sm:p-12 rounded-3xl border border-purple-500/20 bg-gradient-to-b from-purple-950/30 via-slate-900/60 to-slate-900/90 backdrop-blur-xl">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="space-y-4 max-w-xl">
+              <div className="inline-flex items-center gap-2 rounded-full border border-purple-500/30 bg-purple-500/10 px-3 py-1 text-xs font-bold text-purple-300">
+                <Trophy className="h-3.5 w-3.5 text-amber-400" />
+                <span>Weekly Soft-Skills Arena</span>
+              </div>
+              <h3 className="text-2xl sm:text-3xl font-black text-white">
+                Compete in the 60-Second Elevator Pitch Challenge
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                Submit short video pitches, get peer reviews, climb the all-India student leaderboard, and win direct mentorship sessions with Fortune 500 executives.
+              </p>
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  onClick={() => onNavigate('community')}
+                  className="rounded-xl bg-purple-600 hover:bg-purple-500 px-5 py-2.5 text-xs font-bold text-white shadow-lg shadow-purple-500/25 transition cursor-pointer"
+                >
+                  Enter Weekly Challenge
+                </button>
+                <button
+                  onClick={() => onNavigate('community')}
+                  className="rounded-xl border border-white/10 hover:bg-white/5 px-5 py-2.5 text-xs font-bold text-slate-300 transition cursor-pointer"
+                >
+                  View Campus Leaderboard
+                </button>
+              </div>
+            </div>
+
+            <div className="p-6 rounded-2xl border border-white/10 bg-black/40 backdrop-blur-md w-full md:w-80 text-center space-y-3">
+              <span className="text-[10px] font-extrabold uppercase text-amber-400 tracking-wider block">Leader of the Week</span>
+              <img src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=150" alt="Rohan" className="h-16 w-16 rounded-full mx-auto object-cover border-2 border-amber-400 shadow-md" />
+              <div>
+                <h4 className="font-bold text-sm text-white">Rohan Deshmukh</h4>
+                <span className="text-xs text-indigo-300">IIT Bombay • 4,850 Points</span>
+              </div>
+              <span className="text-[11px] text-slate-400 block">Unlocked Diamond Ambassador Status</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 9. FAQ ACCORDION SECTION */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
+        <div className="text-center max-w-2xl mx-auto mb-10">
+          <span className="text-xs font-extrabold uppercase tracking-widest text-blue-400 block mb-1">Got Questions?</span>
+          <h2 className="text-2xl sm:text-4xl font-black text-white">Frequently Asked Questions</h2>
+        </div>
+
+        <div className="space-y-3">
+          {faqs.map((faq, idx) => {
+            const isOpen = activeFaq === idx;
+            return (
+              <div key={idx} className="rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-xl overflow-hidden transition">
+                <button
+                  onClick={() => setActiveFaq(isOpen ? null : idx)}
+                  className="w-full flex items-center justify-between p-4 sm:p-5 text-left text-xs sm:text-sm font-bold text-white hover:text-blue-400 transition cursor-pointer"
+                >
+                  <span>{faq.q}</span>
+                  <ChevronDown className={`h-4 w-4 shrink-0 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180 text-blue-400' : ''}`} />
+                </button>
+                {isOpen && (
+                  <div className="px-4 sm:px-5 pb-5 pt-1 text-xs sm:text-sm text-slate-400 leading-relaxed border-t border-white/5 animate-fade-in">
+                    {faq.a}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* 10. FINAL BOTTOM HIGH-CONVERSION CTA BANNER */}
+      <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="p-8 sm:p-14 rounded-3xl border border-indigo-500/30 bg-gradient-to-r from-blue-950/60 via-indigo-950/60 to-purple-950/60 backdrop-blur-2xl text-center space-y-6 shadow-2xl shadow-indigo-500/10">
+          <h2 className="text-3xl sm:text-5xl font-black text-white leading-tight">
+            Ready to Accelerate Your Career Trajectory?
+          </h2>
+          <p className="text-xs sm:text-base text-slate-300 max-w-2xl mx-auto leading-relaxed">
+            Join 25,000+ ambitious college students and graduates. Master high-stakes communication, negotiate your worth, and graduate with unshakeable workplace confidence.
+          </p>
+          <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <button
+              onClick={() => onNavigate(currentUser ? 'client' : 'register')}
+              className="w-full sm:w-auto flex items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 px-8 py-3.5 text-xs sm:text-sm font-extrabold text-white shadow-xl shadow-indigo-500/30 transition hover:scale-102 cursor-pointer"
+            >
+              <span>Get Started Now</span>
+              <ArrowRight className="h-4 w-4" />
+            </button>
+            <button
+              onClick={() => onNavigate('for-colleges')}
+              className="w-full sm:w-auto rounded-2xl border border-white/15 bg-white/5 hover:bg-white/10 px-8 py-3.5 text-xs sm:text-sm font-bold text-slate-200 transition cursor-pointer"
+            >
+              Partner as a College
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* Payment Modal */}
+      {selectedItem && (
+        <PaymentModal
+          isOpen={paymentModalOpen}
+          onClose={() => setPaymentModalOpen(false)}
+          onSuccess={handlePaymentSuccess}
+          amount={selectedItem.price}
+          itemName={selectedItem.name}
+          itemType={selectedItem.type}
+        />
+      )}
+
     </div>
   );
 }
