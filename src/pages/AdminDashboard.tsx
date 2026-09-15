@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useDatabase } from '../hooks/useDatabase';
 import { api } from '../data/api';
 import { 
@@ -11,7 +11,7 @@ import {
 
 interface AdminDashboardProps {
   onLogout: () => void;
-  onNavigate: (view: 'landing' | 'login' | 'register' | 'client' | 'admin') => void;
+  onNavigate: (view: any) => void;
 }
 
 export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardProps) {

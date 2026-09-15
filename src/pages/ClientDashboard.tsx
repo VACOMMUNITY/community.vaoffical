@@ -5,17 +5,19 @@ import PaymentModal from '../components/PaymentModal';
 import ThemeToggle from '../components/ThemeToggle';
 import { 
   LayoutDashboard, Calendar, BookOpen, MessageSquare, User as UserIcon, LogOut, Menu, X, 
-  Search, CheckCircle, Play, Download, Award, Heart, Receipt, Sparkles, ArrowLeft, Star
+  Search, CheckCircle, Play, Download, Award, Heart, Receipt, Sparkles, ArrowLeft, Star,
+  Gift, Copy
 } from 'lucide-react';
 
 interface ClientDashboardProps {
   onLogout: () => void;
-  onNavigate: (view: 'landing' | 'login' | 'register' | 'client' | 'admin') => void;
+  onNavigate: (view: any) => void;
 }
 
 export default function ClientDashboard({ onLogout, onNavigate }: ClientDashboardProps) {
   const { currentUser, courses, events, enrollments, registrations, payments, forum } = useDatabase();
-  const [activeTab, setActiveTab] = useState<'overview' | 'events' | 'courses' | 'forum' | 'profile'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'events' | 'courses' | 'forum' | 'referrals' | 'profile'>('overview');
+  const [copiedReferral, setCopiedReferral] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // Search & Filter states
@@ -436,6 +438,17 @@ export default function ClientDashboard({ onLogout, onNavigate }: ClientDashboar
           >
             <MessageSquare className="h-4.5 w-4.5" />
             Discussion Space
+          </button>
+          <button
+            onClick={() => { setActiveTab('referrals'); setMobileMenuOpen(false); }}
+            className={`flex w-full items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition ${
+              activeTab === 'referrals' 
+                ? 'bg-brand-50 dark:bg-brand-950/20 text-brand-600 dark:text-brand-400' 
+                : 'text-slate-550 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+            }`}
+          >
+            <Gift className="h-4.5 w-4.5" />
+            Ambassador & Referrals
           </button>
           <button
             onClick={() => { setActiveTab('profile'); setMobileMenuOpen(false); }}
@@ -1214,7 +1227,104 @@ export default function ClientDashboard({ onLogout, onNavigate }: ClientDashboar
             </div>
           )}
 
-          {/* TAB 5: PROFILE & SECURITY */}
+          {/* TAB 5: AMBASSADOR & REFERRAL HUB */}
+          {activeTab === 'referrals' && (
+            <div className="space-y-6 animate-fade-in">
+              {/* Banner */}
+              <div className="rounded-3xl bg-gradient-to-r from-blue-900/40 via-indigo-900/40 to-purple-900/40 border border-indigo-500/20 p-6 sm:p-8 backdrop-blur-xl relative overflow-hidden">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
+                  <div className="space-y-2 max-w-xl">
+                    <div className="inline-flex items-center gap-1.5 rounded-full bg-purple-500/20 px-3 py-1 text-xs font-bold text-purple-300">
+                      <Gift className="h-3.5 w-3.5" />
+                      <span>Campus Growth & Student Ambassador Hub</span>
+                    </div>
+                    <h2 className="text-2xl sm:text-3xl font-black text-white">Give ₹500, Get ₹500</h2>
+                    <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                      Share your unique referral link with classmates. When they register for any event or course, they get ₹500 off and you receive ₹500 in course wallet credits or bank cash!
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <span className="rounded-2xl bg-white/10 border border-white/20 p-4 text-center">
+                      <span className="text-[10px] uppercase font-bold text-slate-400 block">Ambassador Tier</span>
+                      <span className="text-lg font-black text-amber-400">Gold Lead</span>
+                    </span>
+                  </div>
+                </div>
+
+                {/* Referral Link Copy Bar */}
+                <div className="mt-6 pt-6 border-t border-white/10 max-w-2xl">
+                  <span className="text-xs font-bold text-white block mb-2">Your Personal Referral Link</span>
+                  <div className="flex items-center gap-2 p-1.5 rounded-2xl border border-white/15 bg-black/50 backdrop-blur-md">
+                    <input 
+                      type="text" 
+                      readOnly 
+                      value={`https://community-vaofficial.vercel.app/register?ref=VA-${currentUser.name.slice(0, 3).toUpperCase()}${currentUser.id.slice(-3)}`}
+                      className="flex-1 bg-transparent px-3 text-xs font-mono text-purple-300 focus:outline-none truncate"
+                    />
+                    <button
+                      onClick={() => {
+                        navigator.clipboard.writeText(`https://community-vaofficial.vercel.app/register?ref=VA-${currentUser.name.slice(0, 3).toUpperCase()}${currentUser.id.slice(-3)}`);
+                        setCopiedReferral(true);
+                        setTimeout(() => setCopiedReferral(false), 3000);
+                      }}
+                      className="flex items-center gap-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 px-4 py-2 text-xs font-bold text-white transition cursor-pointer"
+                    >
+                      {copiedReferral ? <CheckCircle className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                      <span>{copiedReferral ? 'Copied Link!' : 'Copy Link'}</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Referral Statistics */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-5 rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-xl">
+                  <span className="text-xs text-slate-400 font-bold uppercase">Friends Enrolled</span>
+                  <p className="text-3xl font-black mt-2 text-white">4 Students</p>
+                  <span className="text-[11px] text-green-400 mt-1 block">+2 this week</span>
+                </div>
+
+                <div className="p-5 rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-xl">
+                  <span className="text-xs text-slate-400 font-bold uppercase">Total Rewards Earned</span>
+                  <p className="text-3xl font-black mt-2 text-purple-400">₹2,000</p>
+                  <span className="text-[11px] text-slate-400 mt-1 block">Payable on 1st of month</span>
+                </div>
+
+                <div className="p-5 rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-xl">
+                  <span className="text-xs text-slate-400 font-bold uppercase">Next Milestone</span>
+                  <p className="text-3xl font-black mt-2 text-amber-400">Platinum</p>
+                  <span className="text-[11px] text-slate-400 mt-1 block">1 more referral to unlock</span>
+                </div>
+              </div>
+
+              {/* Milestone Progress & Perks */}
+              <div className="p-6 rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-bold text-white">Campus Ambassador Milestones</h3>
+                  <span className="text-xs font-bold text-indigo-400">4 / 5 Referrals</span>
+                </div>
+                <div className="h-2 w-full rounded-full bg-white/10 overflow-hidden">
+                  <div className="h-full rounded-full bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-500" style={{ width: '80%' }}></div>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs text-slate-300 pt-2">
+                  <div className="p-3 rounded-xl bg-white/5 border border-white/5 space-y-1">
+                    <span className="font-bold text-amber-400 block">Gold Tier (Current)</span>
+                    <p className="text-[11px] text-slate-400">Free access to all live workshops and 10% coupon generation.</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/5 border border-white/5 space-y-1">
+                    <span className="font-bold text-purple-400 block">Platinum Tier (At 5 Referrals)</span>
+                    <p className="text-[11px] text-slate-400">Official LOR signed by CEO, custom college ambassador certificate.</p>
+                  </div>
+                  <div className="p-3 rounded-xl bg-white/5 border border-white/5 space-y-1">
+                    <span className="font-bold text-cyan-400 block">Diamond Tier (At 15 Referrals)</span>
+                    <p className="text-[11px] text-slate-400">Executive mentorship circle, priority recruiter referrals, cash stipends.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 6: PROFILE & SECURITY */}
           {activeTab === 'profile' && (
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               
