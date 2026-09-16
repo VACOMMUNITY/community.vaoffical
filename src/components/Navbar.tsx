@@ -19,6 +19,7 @@ interface NavbarProps {
 export default function Navbar({ currentPage, onNavigate, currentUser, onLogout }: NavbarProps) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  // Exact navigation order requested
   const navLinks: { label: string; page: NavPage; icon: React.ReactNode }[] = [
     { label: 'Home', page: 'landing', icon: <Sparkles className="h-4 w-4" /> },
     { label: 'Events', page: 'events', icon: <Calendar className="h-4 w-4" /> },
@@ -37,13 +38,13 @@ export default function Navbar({ currentPage, onNavigate, currentUser, onLogout 
   };
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-white/10 dark:border-white/10 border-slate-200/80 bg-slate-950/70 dark:bg-slate-950/70 bg-white/80 backdrop-blur-xl transition-all">
+    <header className="sticky top-0 z-50 w-full border-b border-white/10 dark:border-white/10 border-slate-200/80 bg-slate-950/80 dark:bg-slate-950/80 bg-white/80 backdrop-blur-xl transition-all">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         
         {/* Brand Logo */}
         <button 
           onClick={() => handleNavClick('landing')}
-          className="flex items-center gap-2.5 group text-left cursor-pointer focus:outline-none"
+          className="flex items-center gap-2.5 group text-left cursor-pointer focus:outline-none shrink-0"
         >
           <div className="relative flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-blue-600 via-indigo-600 to-purple-600 shadow-md shadow-indigo-500/25 group-hover:scale-105 transition-transform duration-300">
             <span className="font-black text-white text-xs tracking-tighter">VA</span>
@@ -60,14 +61,14 @@ export default function Navbar({ currentPage, onNavigate, currentUser, onLogout 
         </button>
 
         {/* Desktop Navigation Links */}
-        <nav className="hidden xl:flex items-center gap-1">
+        <nav className="hidden lg:flex items-center gap-0.5 xl:gap-1">
           {navLinks.map((link) => {
             const isActive = currentPage === link.page;
             return (
               <button
                 key={link.page}
                 onClick={() => handleNavClick(link.page)}
-                className={`relative px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer ${
+                className={`relative px-2.5 xl:px-3 py-1.5 rounded-lg text-xs font-semibold transition-all duration-200 cursor-pointer ${
                   isActive 
                     ? 'text-white bg-white/10 dark:bg-white/10 shadow-sm border border-white/15' 
                     : 'text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'
@@ -83,7 +84,7 @@ export default function Navbar({ currentPage, onNavigate, currentUser, onLogout 
         </nav>
 
         {/* Right Action Icons & Auth */}
-        <div className="hidden lg:flex items-center gap-3">
+        <div className="hidden lg:flex items-center gap-2.5 shrink-0">
           <ThemeToggle />
 
           {currentUser ? (
@@ -143,21 +144,22 @@ export default function Navbar({ currentPage, onNavigate, currentUser, onLogout 
       {/* Mobile Drawer Menu */}
       {mobileMenuOpen && (
         <div className="lg:hidden border-b border-slate-200 dark:border-white/10 bg-white/95 dark:bg-slate-950/95 backdrop-blur-2xl px-4 py-5 shadow-2xl transition-all animate-fade-in-down">
-          <div className="grid grid-cols-2 gap-2 mb-4">
+          <div className="space-y-1 mb-4">
             {navLinks.map((link) => {
               const isActive = currentPage === link.page;
               return (
                 <button
                   key={link.page}
                   onClick={() => handleNavClick(link.page)}
-                  className={`flex items-center gap-2 p-2.5 rounded-xl text-xs font-bold transition text-left cursor-pointer ${
+                  className={`w-full flex items-center gap-3 p-2.5 rounded-xl text-xs font-bold transition text-left cursor-pointer ${
                     isActive 
                       ? 'bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-md' 
                       : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-white/5'
                   }`}
                 >
-                  {link.icon}
-                  <span>{link.label}</span>
+                  <span className={isActive ? 'text-white' : 'text-blue-400'}>{link.icon}</span>
+                  <span className="flex-1">{link.label}</span>
+                  {isActive && <span className="h-1.5 w-1.5 rounded-full bg-white"></span>}
                 </button>
               );
             })}
@@ -187,13 +189,13 @@ export default function Navbar({ currentPage, onNavigate, currentUser, onLogout 
                   onClick={() => handleNavClick('login')}
                   className="w-full rounded-xl border border-slate-200 dark:border-white/10 py-2.5 text-xs font-bold text-slate-800 dark:text-white hover:bg-slate-100 dark:hover:bg-white/5 cursor-pointer"
                 >
-                  Sign In to Account
+                  Sign In
                 </button>
                 <button
                   onClick={() => handleNavClick('register')}
                   className="w-full rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-500/20 cursor-pointer"
                 >
-                  Create Student Account
+                  Join Community
                 </button>
               </div>
             )}

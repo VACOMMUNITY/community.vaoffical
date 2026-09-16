@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { 
   Sparkles, ArrowRight, CheckCircle, Star, Calendar, 
-  Trophy, PlayCircle, Clock, MapPin, Gift, ChevronDown, Award, TrendingUp
+  Trophy, PlayCircle, Clock, MapPin, Gift, ChevronDown, Award, TrendingUp,
+  Users
 } from 'lucide-react';
 import { db } from '../data/mockDatabase';
 import PaymentModal from '../components/PaymentModal';
@@ -288,9 +289,9 @@ export default function LandingPage({ onNavigate, currentUser }: LandingPageProp
             return (
               <div 
                 key={evt.id}
-                className="group flex flex-col rounded-3xl border border-white/10 bg-slate-900/60 hover:bg-slate-900/90 backdrop-blur-xl p-5 transition-all duration-300 hover:border-blue-500/40 hover:-translate-y-1 shadow-xl"
+                className="group flex flex-col justify-between h-full rounded-3xl border border-white/10 bg-slate-900/60 hover:bg-slate-900/90 backdrop-blur-xl p-5 transition-all duration-300 hover:border-blue-500/40 hover:-translate-y-1 shadow-xl"
               >
-                <div className="relative h-44 w-full overflow-hidden rounded-2xl bg-slate-800">
+                <div className="relative h-44 w-full overflow-hidden rounded-2xl bg-slate-800 shrink-0">
                   <img src={evt.banner} alt={evt.title} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
                   <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80"></div>
                   <span className="absolute top-3 left-3 rounded-lg bg-blue-600 px-2.5 py-1 text-[10px] font-extrabold uppercase text-white shadow">
@@ -308,10 +309,10 @@ export default function LandingPage({ onNavigate, currentUser }: LandingPageProp
 
                 <div className="flex-1 flex flex-col pt-4">
                   <span className="text-[11px] font-semibold text-blue-400">{evt.date}</span>
-                  <h3 className="font-extrabold text-base text-white mt-1 group-hover:text-blue-400 transition leading-snug line-clamp-2">
+                  <h3 className="font-extrabold text-base text-white mt-1 group-hover:text-blue-400 transition leading-snug line-clamp-2 min-h-[2.75rem]">
                     {evt.title}
                   </h3>
-                  <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed">
+                  <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed min-h-[2.5rem]">
                     {evt.description}
                   </p>
 
@@ -332,13 +333,15 @@ export default function LandingPage({ onNavigate, currentUser }: LandingPageProp
                     </div>
                   </div>
 
-                  <button
-                    onClick={() => handleQuickRegister(evt)}
-                    className="mt-5 w-full flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-500/20 transition cursor-pointer"
-                  >
-                    <span>{evt.fees === 0 ? 'Register Free' : 'Secure Pass (₹' + evt.fees + ')'}</span>
-                    <ArrowRight className="h-3.5 w-3.5" />
-                  </button>
+                  <div className="mt-auto pt-4">
+                    <button
+                      onClick={() => handleQuickRegister(evt)}
+                      className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 py-2.5 text-xs font-bold text-white shadow-md shadow-indigo-500/20 transition cursor-pointer"
+                    >
+                      <span>{evt.fees === 0 ? 'Register Free' : 'Secure Pass (₹' + evt.fees + ')'}</span>
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             );
@@ -367,9 +370,9 @@ export default function LandingPage({ onNavigate, currentUser }: LandingPageProp
           {courses.map(crs => (
             <div 
               key={crs.id}
-              className="group flex flex-col rounded-3xl border border-white/10 bg-slate-900/60 hover:bg-slate-900/90 backdrop-blur-xl p-5 transition-all duration-300 hover:border-purple-500/40 hover:-translate-y-1 shadow-xl"
+              className="group flex flex-col justify-between h-full rounded-3xl border border-white/10 bg-slate-900/60 hover:bg-slate-900/90 backdrop-blur-xl p-5 transition-all duration-300 hover:border-purple-500/40 hover:-translate-y-1 shadow-xl"
             >
-              <div className="relative h-44 w-full overflow-hidden rounded-2xl bg-slate-800">
+              <div className="relative h-44 w-full overflow-hidden rounded-2xl bg-slate-800 shrink-0">
                 <img src={crs.thumbnail} alt={crs.title} className="h-full w-full object-cover group-hover:scale-105 transition-transform duration-500" />
                 <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-transparent to-transparent opacity-80"></div>
                 <span className="absolute top-3 left-3 rounded-lg bg-purple-600 px-2.5 py-1 text-[10px] font-extrabold uppercase text-white shadow">
@@ -387,10 +390,10 @@ export default function LandingPage({ onNavigate, currentUser }: LandingPageProp
 
               <div className="flex-1 flex flex-col pt-4">
                 <span className="text-[11px] font-semibold text-purple-400">{crs.instructor}</span>
-                <h3 className="font-extrabold text-base text-white mt-1 group-hover:text-purple-400 transition leading-snug line-clamp-2">
+                <h3 className="font-extrabold text-base text-white mt-1 group-hover:text-purple-400 transition leading-snug line-clamp-2 min-h-[2.75rem]">
                   {crs.title}
                 </h3>
-                <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed">
+                <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed min-h-[2.5rem]">
                   {crs.description}
                 </p>
 
@@ -403,20 +406,94 @@ export default function LandingPage({ onNavigate, currentUser }: LandingPageProp
                   </span>
                 </div>
 
-                <button
-                  onClick={() => handleQuickEnroll(crs)}
-                  className="mt-5 w-full flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 py-2.5 text-xs font-bold text-white shadow-md shadow-purple-500/20 transition cursor-pointer"
-                >
-                  <span>Enroll for ₹{crs.price}</span>
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </button>
+                <div className="mt-auto pt-4">
+                  <button
+                    onClick={() => handleQuickEnroll(crs)}
+                    className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 py-2.5 text-xs font-bold text-white shadow-md shadow-purple-500/20 transition cursor-pointer"
+                  >
+                    <span>Enroll for ₹{crs.price}</span>
+                    <ArrowRight className="h-3.5 w-3.5" />
+                  </button>
+                </div>
               </div>
             </div>
           ))}
         </div>
       </section>
 
-      {/* 6. COMPARISON: WHY GRADES AREN'T ENOUGH */}
+      {/* 6. CAMPUS AMBASSADOR & REFERRAL HUB */}
+      <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+        <div className="relative overflow-hidden rounded-3xl border border-indigo-500/30 bg-gradient-to-tr from-slate-900 via-indigo-950/30 to-purple-950/40 p-8 sm:p-12 backdrop-blur-2xl shadow-2xl">
+          <div className="absolute -top-24 -right-24 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none"></div>
+          
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-10">
+            <div className="space-y-4 max-w-xl text-left">
+              <div className="inline-flex items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 px-3.5 py-1 text-xs font-bold text-indigo-300">
+                <Gift className="h-3.5 w-3.5 text-indigo-400" />
+                <span>Earn While You Learn</span>
+              </div>
+              <h2 className="text-2xl sm:text-4xl font-black text-white leading-tight">
+                Become a Campus Ambassador & Earn ₹500 Per Referral
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+                Lead non-technical upskilling chapters inside your college. Share your unique student link, earn cash stipends credited straight to UPI, unlock Letter of Recommendation from our founders, and network with hiring partners.
+              </p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2">
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-left">
+                  <span className="text-xs font-black text-indigo-400 block">₹500 / Student</span>
+                  <span className="text-[11px] text-slate-400">Direct UPI Referral Payout</span>
+                </div>
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-left">
+                  <span className="text-xs font-black text-purple-400 block">Official LOR</span>
+                  <span className="text-[11px] text-slate-400">Signed by Startup Leadership</span>
+                </div>
+                <div className="p-3 rounded-xl bg-white/5 border border-white/10 text-left">
+                  <span className="text-xs font-black text-blue-400 block">VIP Access</span>
+                  <span className="text-[11px] text-slate-400">Free passes to all cohorts</span>
+                </div>
+              </div>
+
+              <div className="pt-4 flex flex-wrap items-center gap-3">
+                <button
+                  onClick={() => onNavigate('community')}
+                  className="rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 px-6 py-3 text-xs font-extrabold text-white shadow-lg shadow-indigo-500/25 transition cursor-pointer"
+                >
+                  Join Ambassador Program
+                </button>
+                <button
+                  onClick={() => onNavigate(currentUser ? 'client' : 'login')}
+                  className="rounded-xl border border-white/15 bg-white/5 hover:bg-white/10 px-6 py-3 text-xs font-bold text-slate-300 transition cursor-pointer"
+                >
+                  Track My Referral Earnings
+                </button>
+              </div>
+            </div>
+
+            {/* Visual Ambassador Badge Card */}
+            <div className="w-full lg:w-80 p-6 rounded-2xl border border-white/15 bg-slate-900/80 backdrop-blur-xl shadow-xl text-center space-y-4">
+              <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-500/10 border border-indigo-500/20 text-indigo-300 text-[11px] font-bold">
+                <Users className="h-3 w-3" /> 450+ Active Ambassadors
+              </div>
+              <div className="flex justify-center -space-x-2 overflow-hidden py-1">
+                <img className="inline-block h-10 w-10 rounded-full ring-2 ring-indigo-500 object-cover" src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120" alt="Ambassador" />
+                <img className="inline-block h-10 w-10 rounded-full ring-2 ring-purple-500 object-cover" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120" alt="Ambassador" />
+                <img className="inline-block h-10 w-10 rounded-full ring-2 ring-blue-500 object-cover" src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&q=80&w=120" alt="Ambassador" />
+                <img className="inline-block h-10 w-10 rounded-full ring-2 ring-pink-500 object-cover" src="https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?auto=format&fit=crop&q=80&w=120" alt="Ambassador" />
+              </div>
+              <div className="border-t border-white/10 pt-3 text-xs text-slate-300">
+                <div className="flex justify-between font-bold text-white mb-1">
+                  <span>Average Monthly Payout</span>
+                  <span className="text-green-400 font-extrabold">₹8,500</span>
+                </div>
+                <p className="text-[11px] text-slate-400">Top student ambassadors earn up to ₹25,000/month promoting career cohorts.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* 7. COMPARISON: WHY GRADES AREN'T ENOUGH */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto">
         <div className="p-8 sm:p-12 rounded-3xl border border-white/15 bg-gradient-to-r from-blue-950/30 via-slate-900/60 to-purple-950/30 backdrop-blur-2xl shadow-2xl">
           <div className="text-center max-w-2xl mx-auto mb-10">
@@ -475,7 +552,7 @@ export default function LandingPage({ onNavigate, currentUser }: LandingPageProp
         </div>
       </section>
 
-      {/* 7. STUDENT SUCCESS TESTIMONIALS */}
+      {/* 8. STUDENT SUCCESS TESTIMONIALS */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="text-center max-w-2xl mx-auto mb-12">
           <span className="text-xs font-extrabold uppercase tracking-widest text-blue-400 block mb-1">Student Outcomes</span>
@@ -512,7 +589,7 @@ export default function LandingPage({ onNavigate, currentUser }: LandingPageProp
         </div>
       </section>
 
-      {/* 8. COMMUNITY HIGHLIGHTS & WEEKLY CHALLENGES PREVIEW */}
+      {/* 9. COMMUNITY HIGHLIGHTS & WEEKLY CHALLENGES PREVIEW */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="p-8 sm:p-12 rounded-3xl border border-purple-500/20 bg-gradient-to-b from-purple-950/30 via-slate-900/60 to-slate-900/90 backdrop-blur-xl">
           <div className="flex flex-col md:flex-row items-center justify-between gap-8">
@@ -556,7 +633,7 @@ export default function LandingPage({ onNavigate, currentUser }: LandingPageProp
         </div>
       </section>
 
-      {/* 9. FAQ ACCORDION SECTION */}
+      {/* 10. FAQ ACCORDION SECTION */}
       <section className="py-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto">
         <div className="text-center max-w-2xl mx-auto mb-10">
           <span className="text-xs font-extrabold uppercase tracking-widest text-blue-400 block mb-1">Got Questions?</span>
@@ -586,7 +663,7 @@ export default function LandingPage({ onNavigate, currentUser }: LandingPageProp
         </div>
       </section>
 
-      {/* 10. FINAL BOTTOM HIGH-CONVERSION CTA BANNER */}
+      {/* 11. FINAL BOTTOM HIGH-CONVERSION CTA BANNER */}
       <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
         <div className="p-8 sm:p-14 rounded-3xl border border-indigo-500/30 bg-gradient-to-r from-blue-950/60 via-indigo-950/60 to-purple-950/60 backdrop-blur-2xl text-center space-y-6 shadow-2xl shadow-indigo-500/10">
           <h2 className="text-3xl sm:text-5xl font-black text-white leading-tight">

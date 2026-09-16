@@ -164,10 +164,10 @@ export default function EventsPage({ onNavigate, currentUser }: EventsPageProps)
             return (
               <div 
                 key={evt.id}
-                className="group relative flex flex-col rounded-2xl border border-white/10 bg-slate-900/60 hover:bg-slate-900/90 backdrop-blur-xl p-5 shadow-xl transition-all duration-300 hover:border-blue-500/40 hover:shadow-2xl hover:-translate-y-1"
+                className="group relative flex flex-col justify-between h-full rounded-2xl border border-white/10 bg-slate-900/60 hover:bg-slate-900/90 backdrop-blur-xl p-5 shadow-xl transition-all duration-300 hover:border-blue-500/40 hover:shadow-2xl hover:-translate-y-1"
               >
                 {/* Banner Thumbnail */}
-                <div className="relative h-44 w-full overflow-hidden rounded-xl bg-slate-800">
+                <div className="relative h-44 w-full overflow-hidden rounded-xl bg-slate-800 shrink-0">
                   <img 
                     src={evt.banner} 
                     alt={evt.title}
@@ -193,10 +193,10 @@ export default function EventsPage({ onNavigate, currentUser }: EventsPageProps)
                 {/* Content */}
                 <div className="flex-1 flex flex-col pt-4">
                   <span className="text-[11px] font-semibold text-blue-400">{evt.date}</span>
-                  <h3 className="font-extrabold text-base text-white mt-1 group-hover:text-blue-400 transition leading-snug line-clamp-2">
+                  <h3 className="font-extrabold text-base text-white mt-1 group-hover:text-blue-400 transition leading-snug line-clamp-2 min-h-[2.75rem]">
                     {evt.title}
                   </h3>
-                  <p className="text-xs text-slate-400 mt-2 leading-relaxed line-clamp-2">
+                  <p className="text-xs text-slate-400 mt-2 leading-relaxed line-clamp-2 min-h-[2.5rem]">
                     {evt.description}
                   </p>
 
@@ -222,7 +222,7 @@ export default function EventsPage({ onNavigate, currentUser }: EventsPageProps)
                   </div>
 
                   {/* Actions */}
-                  <div className="mt-5 pt-3 border-t border-white/10 flex items-center gap-2">
+                  <div className="mt-auto pt-4 border-t border-white/10 flex items-center gap-2">
                     <button
                       onClick={() => setSelectedEvent(evt)}
                       className="flex-1 rounded-xl border border-white/10 hover:bg-white/5 py-2.5 text-center text-xs font-bold text-slate-300 hover:text-white transition cursor-pointer"

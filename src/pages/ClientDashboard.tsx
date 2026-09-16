@@ -194,7 +194,7 @@ export default function ClientDashboard({ onLogout, onNavigate }: ClientDashboar
       const prevEnr = enrollments.find(e => e.id === enrollId);
       const wasCompleted = prevEnr?.completedLessons.includes(videoId);
 
-      if (updatedEnr.progress === 100 && !wasCompleted) {
+      if (updatedEnr && updatedEnr.progress === 100 && !wasCompleted) {
         import('canvas-confetti').then((confetti) => {
           confetti.default({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
         }).catch(() => {});
