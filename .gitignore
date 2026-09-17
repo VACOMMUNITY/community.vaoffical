@@ -31,6 +31,8 @@ dist-ssr
 .env
 .env.local
 .env.*
+!.env.example
+!server/.env.example
 
 # Server dependencies
 server/node_modules
