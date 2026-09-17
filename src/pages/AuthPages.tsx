@@ -105,29 +105,6 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
     }
   };
 
-  // Quick Demo logins helpers
-  const triggerDemoLogin = async (role: 'admin' | 'student') => {
-    const emailToUse = role === 'admin' ? 'sarah@example.com' : 'alex@example.com';
-    const pwdToUse = role === 'admin' ? 'admin' : 'password';
-    setEmail(emailToUse);
-    setPassword(pwdToUse);
-    setErrorMsg('');
-    
-    setTimeout(async () => {
-      try {
-        const user = await api.auth.login(emailToUse, pwdToUse);
-        showNotification(`Logged in as ${user.name} (${role === 'admin' ? 'Administrator' : 'Student'}).`, 'success');
-        setTimeout(() => {
-          onLoginSuccess(user);
-        }, 500);
-      } catch (err: any) {
-        const msg = err.message || 'Demo access failed.';
-        setErrorMsg(msg);
-        showNotification(msg, 'error');
-      }
-    }, 200);
-  };
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-[#0B0F19] px-4 sm:px-6 py-12 relative overflow-hidden text-slate-100 selection:bg-blue-600 selection:text-white">
       
@@ -367,32 +344,6 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
               </button>
             </>
           )}
-        </div>
-
-        {/* Quick 1-Click Demo Logins */}
-        <div className="mt-6 pt-5 border-t border-white/10">
-          <div className="flex items-center justify-between mb-2.5">
-            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">⚡ 1-Click Demo Accounts</span>
-            <span className="text-[10px] text-slate-500">Or use your own credentials</span>
-          </div>
-          <div className="grid grid-cols-2 gap-2.5">
-            <button
-              type="button"
-              onClick={() => triggerDemoLogin('student')}
-              className="rounded-xl border border-white/10 bg-slate-800/80 hover:bg-slate-700/80 py-2 px-3 text-center text-xs font-bold text-white transition cursor-pointer flex items-center justify-center gap-1.5"
-            >
-              <span>Student</span>
-              <span className="text-[10px] text-slate-400 font-normal">(Alex)</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => triggerDemoLogin('admin')}
-              className="rounded-xl border border-indigo-500/30 bg-indigo-950/40 hover:bg-indigo-900/50 py-2 px-3 text-center text-xs font-bold text-indigo-300 transition cursor-pointer flex items-center justify-center gap-1.5"
-            >
-              <span>Admin</span>
-              <span className="text-[10px] text-indigo-400 font-normal">(Sarah)</span>
-            </button>
-          </div>
         </div>
 
       </div>
