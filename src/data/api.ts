@@ -112,11 +112,16 @@ const mapCourse = (c: any): Course => {
 
 const mapEnrollment = (e: any): Enrollment => {
   if (!e) return e;
+  let completed = e.completed_lessons || e.completedLessons || [];
+  if (typeof completed === 'string') {
+    try { completed = JSON.parse(completed); } catch { completed = []; }
+  }
+  if (!Array.isArray(completed)) completed = [];
   return {
     ...e,
     userId: e.user_id || e.userId,
     courseId: e.course_id || e.courseId,
-    completedLessons: e.completed_lessons || e.completedLessons || [],
+    completedLessons: completed,
     certificateStatus: e.certificate_status || e.certificateStatus || 'not_earned',
     certificateId: e.certificate_id || e.certificateId,
     enrolledAt: e.enrolled_at || e.enrolledAt || new Date().toISOString()

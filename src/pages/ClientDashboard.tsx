@@ -48,18 +48,28 @@ export default function ClientDashboard({ onLogout, onNavigate }: ClientDashboar
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [successToast, setSuccessToast] = useState('');
 
-  // Sync profile form once currentUser is loaded
+  // Sync profile form once currentUser is loaded without infinite re-render loops
   useEffect(() => {
     if (currentUser) {
-      setProfileForm({
-        name: currentUser.name || '',
-        phone: currentUser.phone || '',
-        bio: currentUser.bio || '',
-        photo: currentUser.profilePhoto || '',
-        newPassword: ''
+      setProfileForm(prev => {
+        if (
+          prev.name === (currentUser.name || '') &&
+          prev.phone === (currentUser.phone || '') &&
+          prev.bio === (currentUser.bio || '') &&
+          prev.photo === (currentUser.profilePhoto || '')
+        ) {
+          return prev;
+        }
+        return {
+          name: currentUser.name || '',
+          phone: currentUser.phone || '',
+          bio: currentUser.bio || '',
+          photo: currentUser.profilePhoto || '',
+          newPassword: ''
+        };
       });
     }
-  }, [currentUser]);
+  }, [currentUser?.id, currentUser?.name, currentUser?.phone, currentUser?.bio, currentUser?.profilePhoto]);
 
   if (!currentUser) return null;
 
@@ -192,7 +202,7 @@ export default function ClientDashboard({ onLogout, onNavigate }: ClientDashboar
       const updatedEnr = await api.courses.updateProgress(enrollId, videoId, courseId);
       
       const prevEnr = enrollments.find(e => e.id === enrollId);
-      const wasCompleted = prevEnr?.completedLessons.includes(videoId);
+      const wasCompleted = Array.isArray(prevEnr?.completedLessons) ? prevEnr.completedLessons.includes(videoId) : false;
 
       if (updatedEnr && updatedEnr.progress === 100 && !wasCompleted) {
         import('canvas-confetti').then((confetti) => {
@@ -897,7 +907,8 @@ export default function ClientDashboard({ onLogout, onNavigate }: ClientDashboar
                             </div>
                             <div className="space-y-2">
                               {selectedCourse.videos.map((vid: any) => {
-                                const checked = enrollRecord.completedLessons.includes(vid.id);
+                                const completedList = Array.isArray(enrollRecord?.completedLessons) ? enrollRecord.completedLessons : [];
+                                const checked = completedList.includes(vid.id);
                                 return (
                                   <div 
                                     key={vid.id}
