@@ -26,7 +26,7 @@ export default function ForCollegesPage({ onNavigate }: ForCollegesPageProps) {
   };
 
   const handleDownloadBrochure = () => {
-    const content = `COMMUNITY.VA — Institutional Partnership & Campus Readiness Brochure 2026\n\nPrograms Offered:\n1. 2-Day Placement Acceleration Bootcamp (ATS Resume, STAR Mock Interviews, Salary Negotiation)\n2. Corporate Communication & Executive Presence Cohort\n3. Leadership & Cross-Functional Team Dynamics\n\nMetrics:\n- 25,000+ Students Upskilled\n- 45+ Partner Institutions\n- 94% Interview Confidence Rating\n\nContact: institutional@communityva.com | +91 98765 43210`;
+    const content = `COMMUNITY.VA — Institutional Partnership & Campus Readiness Brochure 2026\n\nPrograms Offered:\n1. 2-Day Placement Acceleration Bootcamp (ATS Resume, STAR Mock Interviews, Salary Negotiation)\n2. Corporate Communication & Executive Presence Cohort\n3. Leadership & Cross-Functional Team Dynamics\n\nMetrics:\n- 25,000+ Students Upskilled\n- 45+ Partner Institutions\n- 94% Interview Confidence Rating\n\nHeadquarters: Hyderabad, Telangana, India\nContact: foundercommunityva@gmail.com | community.va01@gmail.com\nWhatsApp / Phone: +91 7416201359`;
     const blob = new Blob([content], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -224,7 +224,7 @@ export default function ForCollegesPage({ onNavigate }: ForCollegesPageProps) {
                   <input
                     type="tel"
                     required
-                    placeholder="+91 98765 43210"
+                    placeholder="+91 74162 01359"
                     value={phone}
                     onChange={(e) => setPhone(e.target.value)}
                     className="w-full rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-blue-500"

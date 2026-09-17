@@ -212,8 +212,29 @@ export default function Footer({ onNavigate }: FooterProps) {
                   Contact & Support
                 </button>
               </li>
-              <li>
-                <span className="text-slate-500">Bangalore • Delhi • Hyderabad</span>
+              <li className="pt-1 text-[11px] text-slate-400 space-y-1">
+                <div className="flex items-center gap-1.5 text-slate-300">
+                  <span className="text-emerald-400 font-bold">📍</span>
+                  <span>Hyderabad, Telangana, India</span>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-green-400 font-bold">💬</span>
+                  <a href="https://wa.me/917416201359" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline">
+                    WhatsApp: +91 7416201359
+                  </a>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-blue-400 font-bold">✉️</span>
+                  <a href="mailto:community.va01@gmail.com" className="text-slate-300 hover:text-white hover:underline">
+                    community.va01@gmail.com
+                  </a>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-indigo-400 font-bold">✉️</span>
+                  <a href="mailto:foundercommunityva@gmail.com" className="text-slate-300 hover:text-white hover:underline">
+                    foundercommunityva@gmail.com
+                  </a>
+                </div>
               </li>
             </ul>
           </div>

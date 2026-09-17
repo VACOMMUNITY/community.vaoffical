@@ -30,7 +30,7 @@ export default function ContactPage({ onNavigate }: ContactPageProps) {
     },
     {
       q: 'Can colleges book customized offline on-campus bootcamps?',
-      a: 'Absolutely. We host 2-day physical bootcamps covering resume audits, group discussion simulations, and panel mock interviews. Visit our "For Colleges" page or email institutional@communityva.com to request an MOU proposal.'
+      a: 'Absolutely. We host 2-day physical bootcamps covering resume audits, group discussion simulations, and panel mock interviews. Visit our "For Colleges" page or email foundercommunityva@gmail.com to request an MOU proposal.'
     },
     {
       q: 'What is the refund policy if I cannot attend a live masterclass?',
@@ -83,35 +83,43 @@ export default function ContactPage({ onNavigate }: ContactPageProps) {
               <Mail className="h-5 w-5" />
             </div>
             <h3 className="font-extrabold text-sm text-white">Direct Emails</h3>
-            <p className="text-xs text-slate-400">
-              Students: <a href="mailto:support@communityva.com" className="text-blue-400 hover:underline">support@communityva.com</a><br/>
-              Colleges: <a href="mailto:colleges@communityva.com" className="text-blue-400 hover:underline">colleges@communityva.com</a>
+            <p className="text-xs text-slate-300 space-y-1">
+              <span className="block">General / Support: <a href="mailto:community.va01@gmail.com" className="text-blue-400 hover:underline font-medium">community.va01@gmail.com</a></span>
+              <span className="block">Founder / Alliances: <a href="mailto:foundercommunityva@gmail.com" className="text-blue-400 hover:underline font-medium">foundercommunityva@gmail.com</a></span>
             </p>
             <span className="text-[11px] text-slate-500 block">Typical response time: Under 2 hours</span>
           </div>
 
           <div className="p-6 rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-xl space-y-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/20 text-purple-400">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-500/20 text-green-400">
               <PhoneCall className="h-5 w-5" />
             </div>
-            <h3 className="font-extrabold text-sm text-white">Student Helpline</h3>
-            <p className="text-xs text-slate-400">
-              Call / WhatsApp: <span className="text-white font-semibold">+91 98765 43210</span><br/>
-              Mon - Sat: 9:00 AM - 8:00 PM IST
+            <h3 className="font-extrabold text-sm text-white">WhatsApp & Helpline</h3>
+            <p className="text-xs text-slate-300 space-y-1">
+              <span className="block">WhatsApp / Call: <a href="https://wa.me/917416201359" target="_blank" rel="noopener noreferrer" className="text-green-400 hover:underline font-semibold">+91 7416201359</a></span>
+              <span className="block text-slate-400">Mon - Sat: 9:00 AM - 8:00 PM IST</span>
             </p>
-            <span className="text-[11px] text-slate-500 block">Instant emergency ticket resolution</span>
+            <a 
+              href="https://wa.me/917416201359" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 text-xs font-bold text-green-400 hover:text-green-300 transition"
+            >
+              <span>Chat directly on WhatsApp</span>
+              <ArrowRight className="h-3 w-3" />
+            </a>
           </div>
 
           <div className="p-6 rounded-2xl border border-white/10 bg-slate-900/60 backdrop-blur-xl space-y-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-green-500/20 text-green-400">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-purple-500/20 text-purple-400">
               <MapPin className="h-5 w-5" />
             </div>
-            <h3 className="font-extrabold text-sm text-white">Innovation Headquarters</h3>
-            <p className="text-xs text-slate-400">
-              COMMUNITY.VA Technologies Pvt. Ltd.<br/>
-              Koramangala 4th Block, Bangalore, KA 560034
+            <h3 className="font-extrabold text-sm text-white">Headquarters & Location</h3>
+            <p className="text-xs text-slate-300">
+              <span className="font-semibold text-white block">COMMUNITY.VA</span>
+              Hyderabad, Telangana, India
             </p>
-            <span className="text-[11px] text-slate-500 block">Regional hubs in Delhi NCR & Hyderabad</span>
+            <span className="text-[11px] text-slate-500 block">Hyderabad Chapter • Telangana</span>
           </div>
         </div>
 

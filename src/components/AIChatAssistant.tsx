@@ -60,7 +60,11 @@ export default function AIChatAssistant() {
     }
 
     if (q.includes('price') || q.includes('cost') || q.includes('free')) {
-      return 'Our workshops range from Free to $49. Courses are priced between $19 and $49 (before discount). Make sure to apply a coupon code like WELCOME50 for half off!';
+      return 'Our workshops range from Free to ₹999. Courses are priced between ₹499 and ₹1,499 (before discount). Make sure to apply a coupon code like WELCOME50 for half off!';
+    }
+
+    if (q.includes('contact') || q.includes('whatsapp') || q.includes('phone') || q.includes('number') || q.includes('email') || q.includes('location') || q.includes('place') || q.includes('address') || q.includes('office') || q.includes('hyderabad')) {
+      return 'You can reach COMMUNITY.VA anytime via WhatsApp / Call at +91 7416201359, or email us directly at community.va01@gmail.com and foundercommunityva@gmail.com. Our headquarters are based in Hyderabad, Telangana, India!';
     }
 
     return "That is a great question! Developing non-technical skills (or 'human skills') is the ultimate accelerator for career growth. Could you tell me more about what specific goal you are trying to achieve (e.g., drafting a resume, pitching a project, or leading a team)?";

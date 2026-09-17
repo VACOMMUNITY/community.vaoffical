@@ -340,7 +340,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
     // Terms
     ctx.fillStyle = '#94a3b8';
     ctx.font = '10px sans-serif';
-    ctx.fillText('Thank you for choosing COMMUNITY.VA! For support, email help@communityva.com', 40, 620);
+    ctx.fillText('Thank you for choosing COMMUNITY.VA! For support, email community.va01@gmail.com | WhatsApp: +91 7416201359', 40, 620);
     ctx.fillText('Secure Transaction simulated via Razorpay APIs.', 40, 640);
 
     const image = canvas.toDataURL('image/png');

@@ -196,6 +196,24 @@ export default function App() {
         </Suspense>
       )}
 
+      {/* Floating WhatsApp Quick Connect */}
+      {!isAuthView && (
+        <a
+          href="https://wa.me/917416201359?text=Hello%20COMMUNITY.VA%2C%20I%20have%20an%20inquiry%20regarding%20events%20and%20courses."
+          target="_blank"
+          rel="noopener noreferrer"
+          title="Chat with COMMUNITY.VA on WhatsApp (+91 7416201359)"
+          className="fixed bottom-6 left-6 z-40 flex items-center gap-2.5 rounded-full bg-[#25D366] hover:bg-[#20ba59] text-white px-3.5 py-2.5 shadow-2xl shadow-green-950/50 hover:scale-105 active:scale-95 transition-all duration-200 group border border-emerald-400/30 cursor-pointer"
+        >
+          <svg className="h-5 w-5 fill-current" viewBox="0 0 24 24">
+            <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.711 2.598 2.664-.699c.97.53 1.87.813 2.796.813h.005c3.179 0 5.767-2.586 5.768-5.766 0-3.18-2.587-5.766-5.773-5.766zm3.411 8.232c-.144.405-.837.774-1.17.822-.311.045-.71.071-2.288-.582-1.89-1.025-3.11-2.955-3.204-3.08-.094-.125-.769-1.022-.769-1.949 0-.927.487-1.382.66-1.572.173-.19.377-.238.503-.238.126 0 .251.002.36.008.117.006.273-.044.427.326.16.386.545 1.332.593 1.43.048.098.08.213.016.34-.064.126-.096.205-.19.314-.094.11-.198.246-.282.33-.095.095-.193.198-.083.388.11.19.488.805 1.048 1.303.722.643 1.33.842 1.52.937.19.095.301.079.412-.047.111-.127.476-.554.603-.744.127-.19.254-.158.428-.095.174.063 1.108.522 1.298.617.19.095.317.142.364.222.048.079.048.459-.096.864z"/>
+            <path d="M12 2C6.477 2 2 6.477 2 12c0 1.891.527 3.66 1.443 5.176L2 22l4.954-1.3c1.47.854 3.177 1.3 5.046 1.3 5.523 0 10-4.477 10-10S17.523 2 12 2zm0 18.167c-1.636 0-3.153-.478-4.434-1.298l-.318-.204-2.946.772.787-2.871-.219-.348A8.136 8.136 0 0 1 3.833 12c0-4.503 3.664-8.167 8.167-8.167s8.167 3.664 8.167 8.167-3.664 8.167-8.167 8.167z"/>
+          </svg>
+          <span className="text-xs font-black tracking-wide hidden sm:inline">WhatsApp</span>
+          <span className="text-[11px] font-semibold text-emerald-100 hidden md:inline">• +91 7416201359</span>
+        </a>
+      )}
+
     </div>
   );
 }
