@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../data/api';
 import type { User } from '../data/mockDatabase';
-import { ArrowLeft, Mail, Lock, User as UserIcon, Phone, ShieldAlert, Check, X, Sparkles, ArrowRight } from 'lucide-react';
+import { ArrowLeft, Mail, Lock, User as UserIcon, Phone, ShieldAlert, Check, X, ArrowRight, Clock } from 'lucide-react';
 
 interface AuthPagesProps {
   initialMode: 'login' | 'register' | 'forgot' | 'verify';
@@ -10,7 +10,7 @@ interface AuthPagesProps {
 }
 
 export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: AuthPagesProps) {
-  const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'verify'>(initialMode);
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'verify' | 'pending_confirmation'>(initialMode);
   
   // Input fields
   const [email, setEmail] = useState('');
@@ -18,6 +18,7 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
+  const [submittedReg, setSubmittedReg] = useState<{ name: string; email: string; phone: string } | null>(null);
 
   // Error/Status messages
   const [errorMsg, setErrorMsg] = useState('');
@@ -63,11 +64,10 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
     setErrorMsg('');
     setLoading(true);
     try {
-      const user = await api.auth.register(name, email, phone, password);
-      showNotification(`Account created! Welcome to COMMUNITY.VA, ${user.name}.`, 'success');
-      setTimeout(() => {
-        onLoginSuccess(user);
-      }, 600);
+      await api.auth.register(name, email, phone, password);
+      setSubmittedReg({ name, email, phone });
+      setMode('pending_confirmation');
+      showNotification('Registration submitted! Queued for confirmation by Admin.', 'info');
     } catch (err: any) {
       const msg = err.message || 'Registration failed.';
       setErrorMsg(msg);
@@ -153,6 +153,28 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
         {/* LOGIN FORM */}
         {mode === 'login' && (
           <form onSubmit={handleLogin} className="space-y-4">
+            {/* Admin Fixed Credentials Helper Box */}
+            <div className="rounded-2xl border border-indigo-500/30 bg-gradient-to-r from-indigo-950/60 to-purple-950/40 p-3.5 flex items-center justify-between gap-2 shadow-inner">
+              <div className="min-w-0">
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-indigo-400 flex items-center gap-1">
+                  <span>👑 Admin Login Credentials</span>
+                </span>
+                <p className="text-xs text-slate-200 font-mono font-medium truncate mt-0.5">
+                  community.va01@gmail.com • 123456
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('community.va01@gmail.com');
+                  setPassword('123456');
+                }}
+                className="shrink-0 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 text-xs font-bold text-white transition cursor-pointer shadow-md shadow-indigo-600/30 active:scale-95"
+              >
+                Auto-Fill
+              </button>
+            </div>
+
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">Email Address</label>
               <div className="relative">
@@ -212,7 +234,7 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
                 <input
                   type="text"
                   required
-                  placeholder="e.g. John Doe"
+                  placeholder="Alex Mercer"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
@@ -266,17 +288,20 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
               disabled={loading}
               className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 py-3 text-center text-xs sm:text-sm font-extrabold text-white shadow-lg shadow-indigo-500/25 transition duration-200 cursor-pointer disabled:opacity-50"
             >
-              <span>{loading ? 'Creating Account...' : 'Create Account'}</span>
-              <Sparkles className="h-4 w-4" />
+              <span>{loading ? 'Submitting...' : 'Register Account'}</span>
+              <ArrowRight className="h-4 w-4" />
             </button>
+            <p className="text-[11px] text-center text-slate-500 mt-1">
+              After registration, your profile is routed to the admin for verification.
+            </p>
           </form>
         )}
 
         {/* FORGOT PASSWORD FORM */}
         {mode === 'forgot' && (
           <form onSubmit={handleForgotPassword} className="space-y-4">
-            <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-              Enter your registered email address. We'll send instructions to reset your password.
+            <p className="text-xs text-slate-400">
+              Enter your registered email address and we'll send a password recovery reset link.
             </p>
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">Email Address</label>
@@ -308,43 +333,133 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
           </form>
         )}
 
-        {/* Social Google Login & Mode Toggle */}
-        <div className="relative my-6 text-center">
-          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
-          <span className="relative bg-slate-900 px-3 text-[11px] text-slate-400 font-bold uppercase tracking-wider">Or continue with</span>
-        </div>
+        {/* PENDING CONFIRMATION BY ADMIN SCREEN */}
+        {mode === 'pending_confirmation' && (
+          <div className="space-y-5 animate-fade-in text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-lg shadow-amber-500/10">
+              <Clock className="h-7 w-7 animate-pulse" />
+            </div>
 
-        <button
-          type="button"
-          onClick={handleSocialLogin}
-          className="w-full flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 py-2.5 text-center text-xs font-bold text-white transition hover:scale-101 cursor-pointer"
-        >
-          <svg className="h-4 w-4 mr-1" viewBox="0 0 24 24">
-            <path fill="#EA4335" d="M12 5.04c1.62 0 3.08.56 4.22 1.64l3.15-3.15C17.45 1.74 14.96 1 12 1 7.35 1 3.39 3.65 1.5 7.5l3.85 3C6.26 7.42 8.9 5.04 12 5.04z" />
-            <path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.46c-.28 1.48-1.12 2.74-2.38 3.59l3.7 2.87c2.16-2 3.41-4.94 3.41-8.61z" />
-            <path fill="#FBBC05" d="M5.35 14.5c-.24-.72-.38-1.49-.38-2.3s.14-1.58.38-2.3L1.5 6.9C.54 8.82 0 10.97 0 13.2s.54 4.38 1.5 6.3l3.85-3z" />
-            <path fill="#34A853" d="M12 23c3.24 0 5.97-1.07 7.96-2.92l-3.7-2.87c-1.03.69-2.35 1.1-3.96 1.1-3.1 0-5.74-2.38-6.65-5.46L1.8 15.85C3.69 19.7 7.65 22.3 12 22.3z" />
-          </svg>
-          Sign in with Google
-        </button>
+            <div>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-3 py-1 text-xs font-bold text-amber-300 mb-2">
+                ⏳ Submitted for Verification
+              </span>
+              <h3 className="text-xl font-black text-white">Registration Submitted!</h3>
+              <p className="text-xs text-slate-300 mt-1">
+                Your form has been routed to the COMMUNITY.VA Administrator to confirm and activate your account.
+              </p>
+            </div>
 
-        <div className="mt-5 text-center text-xs text-slate-400">
-          {mode === 'login' ? (
-            <>
-              Don't have an account?{' '}
-              <button onClick={() => setMode('register')} className="font-bold text-blue-400 hover:text-blue-300 transition cursor-pointer">
-                Create Account
+            {submittedReg && (
+              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left space-y-2 text-xs">
+                <div className="flex justify-between border-b border-white/10 pb-1.5">
+                  <span className="text-slate-400">Student Name:</span>
+                  <span className="font-bold text-white">{submittedReg.name}</span>
+                </div>
+                <div className="flex justify-between border-b border-white/10 pb-1.5">
+                  <span className="text-slate-400">Email:</span>
+                  <span className="font-medium text-slate-200">{submittedReg.email}</span>
+                </div>
+                <div className="flex justify-between border-b border-white/10 pb-1.5">
+                  <span className="text-slate-400">Phone:</span>
+                  <span className="font-medium text-slate-200">{submittedReg.phone}</span>
+                </div>
+                <div className="flex justify-between pt-1">
+                  <span className="text-slate-400">Status:</span>
+                  <span className="font-extrabold text-amber-400">Pending Confirmation by Admin</span>
+                </div>
+              </div>
+            )}
+
+            <div className="p-3.5 rounded-2xl bg-indigo-950/40 border border-indigo-500/20 text-xs text-slate-300 text-left space-y-1">
+              <p className="font-bold text-white flex items-center gap-1.5">
+                <span>⚡ Need Fast Confirmation?</span>
+              </p>
+              <p className="text-[11px] text-slate-400">
+                Contact the Admin on WhatsApp for instant activation or login directly with official Admin credentials.
+              </p>
+            </div>
+
+            <div className="space-y-2.5 pt-1">
+              <a
+                href={`https://wa.me/917416201359?text=${encodeURIComponent(
+                  `Hi Admin, I have submitted my registration on COMMUNITY.VA with Name: ${submittedReg?.name || 'Student'} and Email: ${submittedReg?.email || ''}. Please confirm my account.`
+                )}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#20ba59] py-3 text-center text-xs font-bold text-white shadow-lg shadow-green-950/40 transition cursor-pointer"
+              >
+                <span>Confirm on WhatsApp (+91 7416201359)</span>
+                <ArrowRight className="h-4 w-4" />
+              </a>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (submittedReg?.email) setEmail(submittedReg.email);
+                  setMode('login');
+                }}
+                className="w-full rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 py-2.5 text-center text-xs font-bold text-slate-300 hover:text-white transition cursor-pointer"
+              >
+                Proceed to Sign In
               </button>
-            </>
-          ) : (
-            <>
-              Already have an account?{' '}
-              <button onClick={() => setMode('login')} className="font-bold text-blue-400 hover:text-blue-300 transition cursor-pointer">
-                Sign In
+
+              <button
+                type="button"
+                onClick={() => {
+                  setEmail('community.va01@gmail.com');
+                  setPassword('123456');
+                  setMode('login');
+                }}
+                className="w-full rounded-xl border border-indigo-500/30 bg-indigo-950/40 hover:bg-indigo-900/50 py-2.5 text-center text-xs font-bold text-indigo-300 hover:text-indigo-200 transition cursor-pointer"
+              >
+                👑 Admin Login (community.va01@gmail.com)
               </button>
-            </>
-          )}
-        </div>
+            </div>
+          </div>
+        )}
+
+        {/* Social Google Login & Mode Toggle (Only when not in pending_confirmation) */}
+        {mode !== 'pending_confirmation' && (
+          <>
+            <div className="relative my-6 text-center">
+              <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
+              <span className="relative bg-slate-900 px-3 text-[11px] text-slate-400 font-bold uppercase tracking-wider">Or continue with</span>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleSocialLogin}
+              className="w-full flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 py-2.5 text-center text-xs font-bold text-white transition hover:scale-101 cursor-pointer"
+            >
+              <svg className="h-4 w-4 mr-1" viewBox="0 0 24 24">
+                <path fill="#EA4335" d="M12 5.04c1.62 0 3.08.56 4.22 1.64l3.15-3.15C17.45 1.74 14.96 1 12 1 7.35 1 3.39 3.65 1.5 7.5l3.85 3C6.26 7.42 8.9 5.04 12 5.04z" />
+                <path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.46c-.28 1.48-1.12 2.74-2.38 3.59l3.7 2.87c2.16-2 3.41-4.94 3.41-8.61z" />
+                <path fill="#FBBC05" d="M5.35 14.5c-.24-.72-.38-1.49-.38-2.3s.14-1.58.38-2.3L1.5 6.9C.54 8.82 0 10.97 0 13.2s.54 4.38 1.5 6.3l3.85-3z" />
+                <path fill="#34A853" d="M12 23c3.24 0 5.97-1.07 7.96-2.92l-3.7-2.87c-1.03.69-2.35 1.1-3.96 1.1-3.1 0-5.74-2.38-6.65-5.46L1.8 15.85C3.69 19.7 7.65 22.3 12 22.3z" />
+              </svg>
+              Sign in with Google
+            </button>
+
+            <div className="mt-5 text-center text-xs text-slate-400">
+              {mode === 'login' ? (
+                <>
+                  Don't have an account?{' '}
+                  <button onClick={() => setMode('register')} className="font-bold text-blue-400 hover:text-blue-300 transition cursor-pointer">
+                    Create Account
+                  </button>
+                </>
+              ) : (
+                <>
+                  Already have an account?{' '}
+                  <button onClick={() => setMode('login')} className="font-bold text-blue-400 hover:text-blue-300 transition cursor-pointer">
+                    Sign In
+                  </button>
+                </>
+              )}
+            </div>
+          </>
+        )}
 
       </div>
 

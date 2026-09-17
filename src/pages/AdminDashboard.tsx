@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useDatabase } from '../hooks/useDatabase';
+import { db } from '../data/mockDatabase';
 import { api } from '../data/api';
 import { 
   Users as UsersIcon, Calendar, BookOpen, DollarSign, Plus, Edit, Trash2, 
@@ -151,7 +152,11 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
         triggerToast('Workshop updated successfully!');
         setEditingEventId(null);
       } else {
-        await api.events.add(eventData);
+        const added = await api.events.add(eventData);
+        const currentEvts = db.getEvents();
+        if (!currentEvts.some((e: any) => e.id === added.id)) {
+          db.saveEvents([added, ...currentEvts]);
+        }
         triggerToast('New Workshop created successfully!');
       }
       window.dispatchEvent(new Event('db-update'));
@@ -174,7 +179,9 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
     if (!window.confirm('Delete this event? Registrations associated with it will be cleared.')) return;
     try {
       await api.events.delete(eventId);
-      triggerToast('Workshop removed.');
+      const currentEvts = db.getEvents().filter((e: any) => e.id !== eventId);
+      db.saveEvents(currentEvts);
+      triggerToast('Workshop removed successfully.');
       window.dispatchEvent(new Event('db-update'));
     } catch (err: any) {
       triggerToast(err.message || 'Failed to delete event.');
@@ -828,9 +835,11 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
                           </button>
                           <button
                             onClick={() => handleDeleteEvent(evt.id)}
-                            className="rounded-lg bg-red-500/10 hover:bg-red-500/25 text-red-500 px-2 py-1.5 font-bold"
+                            className="inline-flex items-center gap-1 rounded-lg bg-red-500/10 hover:bg-red-500/25 text-red-500 px-2.5 py-1.5 font-bold transition cursor-pointer"
+                            title="Remove Event"
                           >
                             <Trash2 className="h-3.5 w-3.5" />
+                            <span>Remove</span>
                           </button>
                         </td>
                       </tr>

@@ -114,7 +114,7 @@ async function seedDatabase() {
     await db.run('BEGIN TRANSACTION');
 
     // 1. Seed Users (Hashed Passwords)
-    const adminPassHash = await bcrypt.hash('admin', 10);
+    const adminPassHash = await bcrypt.hash('123456', 10);
     const userPassHash = await bcrypt.hash('password', 10);
 
     const userSeedText = `
@@ -124,8 +124,8 @@ async function seedDatabase() {
         (?10, ?11, ?12, ?13, ?14, ?15, ?16, ?17, ?18, 0);
     `;
     const userValues = [
-      'usr_1', 'Sarah Connor', 'sarah@example.com', '+1 555-0199', 'admin', adminPassHash, 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=120', 'Founder and program manager at COMMUNITY.VA.', '2026-01-15T09:30:00Z',
-      'usr_2', 'Alex Mercer', 'alex@example.com', '+1 555-0144', 'user', userPassHash, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120', 'Computer Science undergraduate looking to improve soft skills.', '2026-03-20T14:15:00Z'
+      'usr_admin', 'COMMUNITY.VA Admin', 'community.va01@gmail.com', '+91 7416201359', 'admin', adminPassHash, 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=120', 'Founder and administrator at COMMUNITY.VA.', '2026-01-01T00:00:00Z',
+      'usr_2', 'Alex Mercer', 'alex@example.com', '+91 7416201359', 'user', userPassHash, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120', 'Computer Science undergraduate looking to improve soft skills.', '2026-03-20T14:15:00Z'
     ];
     await db.run(userSeedText, userValues);
 

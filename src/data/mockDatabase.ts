@@ -196,10 +196,23 @@ export interface Testimonial {
 // Initial Seed Data
 const initialUsers: User[] = [
   {
+    id: 'usr_admin',
+    name: 'COMMUNITY.VA Admin',
+    email: 'community.va01@gmail.com',
+    phone: '+91 7416201359',
+    role: 'admin',
+    profilePhoto: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=120',
+    bio: 'Administrator and Director at COMMUNITY.VA.',
+    registeredAt: '2026-01-01T00:00:00Z',
+    isBlocked: false,
+    wishlist: [],
+    couponsUsed: []
+  },
+  {
     id: 'usr_1',
     name: 'Sarah Connor',
     email: 'sarah@example.com',
-    phone: '+1 555-0199',
+    phone: '+91 7416201359',
     role: 'admin',
     profilePhoto: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=120',
     bio: 'Founder and program manager at COMMUNITY.VA. Passionate about empowering students.',

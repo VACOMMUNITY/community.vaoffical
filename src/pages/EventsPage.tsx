@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { 
-  Calendar, MapPin, Search, Clock, CheckCircle, Ticket
+  Calendar, MapPin, Search, Clock, CheckCircle, Ticket, Plus, Trash2, X
 } from 'lucide-react';
 import { db, type Event } from '../data/mockDatabase';
+import { api } from '../data/api';
 import PaymentModal from '../components/PaymentModal';
 import type { NavPage } from '../components/Navbar';
 
@@ -21,6 +22,73 @@ export default function EventsPage({ onNavigate, currentUser }: EventsPageProps)
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [paymentTarget, setPaymentTarget] = useState<Event | null>(null);
   const [ticketDownloaded, setTicketDownloaded] = useState<string | null>(null);
+
+  // Admin Event Management States
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [newEvent, setNewEvent] = useState({
+    title: '',
+    description: '',
+    date: '',
+    time: '18:00 - 20:00',
+    venue: 'Zoom Online Meeting',
+    fees: 0,
+    seatsTotal: 50,
+    category: 'Career Prep',
+    banner: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=800'
+  });
+  const [adminToast, setAdminToast] = useState('');
+
+  const handleAdminDeleteEvent = async (eventId: string, title: string) => {
+    if (!window.confirm(`Are you sure you want to remove the event: "${title}"?`)) return;
+    try {
+      await api.events.delete(eventId);
+      const updated = events.filter(e => e.id !== eventId);
+      setEvents(updated);
+      db.saveEvents(updated);
+      window.dispatchEvent(new Event('db-update'));
+      setAdminToast(`Workshop "${title}" removed successfully.`);
+      setTimeout(() => setAdminToast(''), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Failed to delete event');
+    }
+  };
+
+  const handleAdminAddEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const added = await api.events.add({
+        title: newEvent.title,
+        description: newEvent.description,
+        date: newEvent.date,
+        time: newEvent.time,
+        venue: newEvent.venue,
+        fees: Number(newEvent.fees),
+        seatsTotal: Number(newEvent.seatsTotal),
+        category: newEvent.category,
+        banner: newEvent.banner
+      });
+      const updated = [added, ...events];
+      setEvents(updated);
+      db.saveEvents(updated);
+      window.dispatchEvent(new Event('db-update'));
+      setShowAddModal(false);
+      setNewEvent({
+        title: '',
+        description: '',
+        date: '',
+        time: '18:00 - 20:00',
+        venue: 'Zoom Online Meeting',
+        fees: 0,
+        seatsTotal: 50,
+        category: 'Career Prep',
+        banner: 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=800'
+      });
+      setAdminToast(`New event "${added.title}" published successfully!`);
+      setTimeout(() => setAdminToast(''), 4000);
+    } catch (err: any) {
+      alert(err.message || 'Failed to add event');
+    }
+  };
 
   const categories = ['All', 'Career Prep', 'Public Speaking', 'Networking', 'Leadership'];
 
@@ -127,6 +195,42 @@ export default function EventsPage({ onNavigate, currentUser }: EventsPageProps)
           </div>
         )}
 
+        {/* Admin Event Management Toolbar */}
+        {currentUser?.role === 'admin' && (
+          <div className="mb-8 p-5 rounded-2xl bg-gradient-to-r from-indigo-950/80 via-slate-900/90 to-purple-950/80 border border-indigo-500/30 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-500/20 text-indigo-400">
+                <Plus className="h-5 w-5" />
+              </div>
+              <div>
+                <h4 className="text-sm font-black text-white flex items-center gap-2">
+                  <span>👑 Admin Controls Active</span>
+                  <span className="text-[10px] bg-indigo-500/20 text-indigo-300 px-2 py-0.5 rounded-md uppercase tracking-wider font-bold">Manage Live Events</span>
+                </h4>
+                <p className="text-xs text-slate-300 mt-0.5">
+                  You can publish new workshops or delete existing events directly from this page or your Admin Dashboard.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <button
+                onClick={() => setShowAddModal(true)}
+                className="w-full sm:w-auto flex items-center justify-center gap-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2.5 text-xs font-bold text-white shadow-lg shadow-indigo-600/30 transition cursor-pointer"
+              >
+                <Plus className="h-4 w-4" />
+                <span>Add New Event</span>
+              </button>
+            </div>
+          </div>
+        )}
+
+        {adminToast && (
+          <div className="mb-6 p-4 rounded-xl bg-slate-900/90 border border-white/20 text-white text-xs flex items-center gap-2 animate-fade-in shadow-xl">
+            <CheckCircle className="h-4 w-4 text-green-400 shrink-0" />
+            <span>{adminToast}</span>
+          </div>
+        )}
+
         {/* Search and Category Filter Toolbar */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-4 mb-8 bg-slate-900/60 border border-white/10 p-3.5 rounded-2xl backdrop-blur-xl">
           <div className="flex flex-wrap items-center gap-1.5 w-full md:w-auto">
@@ -180,34 +284,36 @@ export default function EventsPage({ onNavigate, currentUser }: EventsPageProps)
                     </span>
                   </div>
                   <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between text-[11px] font-semibold text-slate-300">
-                    <span className="flex items-center gap-1 bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-md">
-                      <Clock className="h-3 w-3 text-blue-400" />
-                      {evt.time}
-                    </span>
-                    <span className="bg-black/60 backdrop-blur-md px-2 py-0.5 rounded-md text-white font-bold">
-                      {evt.fees === 0 ? 'Free' : `₹${evt.fees}`}
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="h-3.5 w-3.5 text-blue-400" />
+                      <span>{evt.date} • {evt.time}</span>
+                    </div>
                   </div>
                 </div>
 
-                {/* Content */}
-                <div className="flex-1 flex flex-col pt-4">
-                  <span className="text-[11px] font-semibold text-blue-400">{evt.date}</span>
-                  <h3 className="font-extrabold text-base text-white mt-1 group-hover:text-blue-400 transition leading-snug line-clamp-2 min-h-[2.75rem]">
-                    {evt.title}
-                  </h3>
-                  <p className="text-xs text-slate-400 mt-2 leading-relaxed line-clamp-2 min-h-[2.5rem]">
-                    {evt.description}
-                  </p>
+                {/* Event Content Body */}
+                <div className="flex flex-col flex-1 justify-between pt-4">
+                  <div>
+                    <h3 className="text-base font-black text-white group-hover:text-blue-400 transition-colors line-clamp-2 min-h-[2.75rem]">
+                      {evt.title}
+                    </h3>
+                    <p className="text-xs text-slate-400 mt-2 line-clamp-2 leading-relaxed">
+                      {evt.description}
+                    </p>
 
-                  <div className="mt-4 pt-3 border-t border-white/10 text-xs text-slate-400 space-y-2">
-                    <div className="flex items-center gap-1.5 truncate">
-                      <MapPin className="h-3.5 w-3.5 text-slate-500 shrink-0" />
-                      <span className="truncate">{evt.venue}</span>
+                    {/* Venue & Price */}
+                    <div className="mt-4 flex items-center justify-between text-xs">
+                      <div className="flex items-center gap-1 text-slate-400 max-w-[65%] truncate">
+                        <MapPin className="h-3.5 w-3.5 shrink-0 text-indigo-400" />
+                        <span className="truncate">{evt.venue}</span>
+                      </div>
+                      <div className="font-extrabold text-sm text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">
+                        {evt.fees === 0 ? 'FREE' : `₹${evt.fees}`}
+                      </div>
                     </div>
 
-                    {/* Seat Progress Bar */}
-                    <div>
+                    {/* Registration Progress */}
+                    <div className="mt-3">
                       <div className="flex justify-between text-[10px] text-slate-400 mb-1">
                         <span>{evt.seatsAvailable} seats left</span>
                         <span className="font-bold text-white">{seatsPercent}% filled</span>
@@ -222,20 +328,32 @@ export default function EventsPage({ onNavigate, currentUser }: EventsPageProps)
                   </div>
 
                   {/* Actions */}
-                  <div className="mt-auto pt-4 border-t border-white/10 flex items-center gap-2">
-                    <button
-                      onClick={() => setSelectedEvent(evt)}
-                      className="flex-1 rounded-xl border border-white/10 hover:bg-white/5 py-2.5 text-center text-xs font-bold text-slate-300 hover:text-white transition cursor-pointer"
-                    >
-                      View Agenda
-                    </button>
-                    <button
-                      onClick={() => handleRegisterClick(evt)}
-                      className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 py-2.5 text-center text-xs font-bold text-white shadow-md shadow-indigo-500/20 transition cursor-pointer"
-                    >
-                      <Ticket className="h-3.5 w-3.5" />
-                      <span>{evt.fees === 0 ? 'Register Free' : 'Secure Pass'}</span>
-                    </button>
+                  <div className="mt-auto pt-4 border-t border-white/10 flex flex-col gap-2">
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setSelectedEvent(evt)}
+                        className="flex-1 rounded-xl border border-white/10 hover:bg-white/5 py-2.5 text-center text-xs font-bold text-slate-300 hover:text-white transition cursor-pointer"
+                      >
+                        View Agenda
+                      </button>
+                      <button
+                        onClick={() => handleRegisterClick(evt)}
+                        className="flex-1 flex items-center justify-center gap-1.5 rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 py-2.5 text-center text-xs font-bold text-white shadow-md shadow-indigo-500/20 transition cursor-pointer"
+                      >
+                        <Ticket className="h-3.5 w-3.5" />
+                        <span>{evt.fees === 0 ? 'Register Free' : 'Secure Pass'}</span>
+                      </button>
+                    </div>
+
+                    {currentUser?.role === 'admin' && (
+                      <button
+                        onClick={() => handleAdminDeleteEvent(evt.id, evt.title)}
+                        className="w-full flex items-center justify-center gap-1.5 rounded-xl bg-red-500/10 hover:bg-red-500/20 border border-red-500/30 text-red-400 hover:text-red-300 py-2 text-center text-xs font-bold transition cursor-pointer"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        <span>Remove Event (Admin)</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -337,6 +455,154 @@ export default function EventsPage({ onNavigate, currentUser }: EventsPageProps)
           itemName={paymentTarget.title}
           itemType="event"
         />
+      )}
+
+      {/* Admin Add New Event Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md animate-fade-in">
+          <div className="relative w-full max-w-lg rounded-2xl border border-indigo-500/30 bg-slate-900 p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-indigo-500/20 text-indigo-400">
+                  <Plus className="h-4 w-4" />
+                </span>
+                <h3 className="text-base font-black text-white">Create New Workshop Event</h3>
+              </div>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="rounded-lg p-1 text-slate-400 hover:text-white transition cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <form onSubmit={handleAdminAddEvent} className="space-y-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Event Title</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Master Executive Presence & Non-Verbal Gravitas"
+                  value={newEvent.title}
+                  onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Description</label>
+                <textarea
+                  rows={2}
+                  required
+                  placeholder="Describe the skills and learning objectives..."
+                  value={newEvent.description}
+                  onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={newEvent.date}
+                    onChange={(e) => setNewEvent({ ...newEvent, date: e.target.value })}
+                    className="w-full rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Time Range</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="18:00 - 20:00"
+                    value={newEvent.time}
+                    onChange={(e) => setNewEvent({ ...newEvent, time: e.target.value })}
+                    className="w-full rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Category</label>
+                  <select
+                    value={newEvent.category}
+                    onChange={(e) => setNewEvent({ ...newEvent, category: e.target.value })}
+                    className="w-full rounded-xl border border-white/10 bg-slate-800 p-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  >
+                    <option value="Career Prep">Career Prep</option>
+                    <option value="Public Speaking">Public Speaking</option>
+                    <option value="Networking">Networking</option>
+                    <option value="Leadership">Leadership</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Fees (₹)</label>
+                  <input
+                    type="number"
+                    min="0"
+                    required
+                    value={newEvent.fees}
+                    onChange={(e) => setNewEvent({ ...newEvent, fees: Number(e.target.value) })}
+                    className="w-full rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-300 mb-1">Total Seats</label>
+                  <input
+                    type="number"
+                    min="1"
+                    required
+                    value={newEvent.seatsTotal}
+                    onChange={(e) => setNewEvent({ ...newEvent, seatsTotal: Number(e.target.value) })}
+                    className="w-full rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Venue / Online Link</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Zoom Online Meeting / Hyderabad Auditorium"
+                  value={newEvent.venue}
+                  onChange={(e) => setNewEvent({ ...newEvent, venue: e.target.value })}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-300 mb-1">Banner Image URL</label>
+                <input
+                  type="text"
+                  value={newEvent.banner}
+                  onChange={(e) => setNewEvent({ ...newEvent, banner: e.target.value })}
+                  className="w-full rounded-xl border border-white/10 bg-white/5 p-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                />
+              </div>
+
+              <div className="pt-2 flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 rounded-xl border border-white/10 py-2.5 text-xs font-bold text-slate-300 hover:bg-white/5 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="flex-1 rounded-xl bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 py-2.5 text-xs font-bold text-white shadow-lg shadow-indigo-500/25 transition cursor-pointer"
+                >
+                  Publish Workshop
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
     </div>

@@ -167,6 +167,13 @@ export const api = {
   auth: {
     login: async (email: string, password?: string) => {
       const normalizedEmail = email.trim().toLowerCase();
+      // Direct support for fixed Admin credentials: community.va01@gmail.com / 123456
+      if (normalizedEmail === 'community.va01@gmail.com') {
+        if (password && password !== '123456' && password !== 'admin') {
+          throw new Error('Invalid password for Admin. Please enter 123456.');
+        }
+      }
+
       try {
         const res = await request('/auth/login', {
           method: 'POST',
@@ -177,6 +184,37 @@ export const api = {
         db.setCurrentUser(mapped);
         return mapped;
       } catch {
+        // Direct fixed admin fallback
+        if (normalizedEmail === 'community.va01@gmail.com') {
+          if (password && password !== '123456' && password !== 'admin') {
+            throw new Error('Invalid password for Admin. Please enter 123456.');
+          }
+          const users = db.getUsers();
+          let adminUser = users.find(u => u.email.toLowerCase() === 'community.va01@gmail.com');
+          if (!adminUser) {
+            adminUser = {
+              id: 'usr_admin',
+              name: 'COMMUNITY.VA Admin',
+              email: 'community.va01@gmail.com',
+              phone: '+91 7416201359',
+              role: 'admin',
+              profilePhoto: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=120',
+              bio: 'Administrator and Director at COMMUNITY.VA.',
+              registeredAt: '2026-01-01T00:00:00Z',
+              isBlocked: false,
+              wishlist: [],
+              couponsUsed: []
+            };
+            db.saveUsers([adminUser, ...users]);
+          } else {
+            adminUser.role = 'admin';
+            db.saveUsers(users.map(u => u.id === adminUser!.id ? adminUser! : u));
+          }
+          setToken('cva_token_usr_admin');
+          db.setCurrentUser(adminUser);
+          return adminUser;
+        }
+
         const accounts = getStoredAccounts();
         const existing = accounts.find(a => a.email.toLowerCase() === normalizedEmail);
 
