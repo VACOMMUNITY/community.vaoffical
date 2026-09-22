@@ -4,7 +4,7 @@ import {
 } from 'lucide-react';
 import { db, type Event } from '../data/mockDatabase';
 import { api } from '../data/api';
-import PaymentModal from '../components/PaymentModal';
+import EventRegistrationModal from '../components/EventRegistrationModal';
 import type { NavPage } from '../components/Navbar';
 
 interface EventsPageProps {
@@ -18,9 +18,9 @@ export default function EventsPage({ onNavigate, currentUser }: EventsPageProps)
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
-  // Payment Modal State
-  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
-  const [paymentTarget, setPaymentTarget] = useState<Event | null>(null);
+  // Dynamic Event Registration Modal State
+  const [dynamicRegModalOpen, setDynamicRegModalOpen] = useState(false);
+  const [selectedRegEvent, setSelectedRegEvent] = useState<Event | null>(null);
   const [ticketDownloaded, setTicketDownloaded] = useState<string | null>(null);
 
   // Admin Event Management States
@@ -101,59 +101,8 @@ export default function EventsPage({ onNavigate, currentUser }: EventsPageProps)
   });
 
   const handleRegisterClick = (evt: Event) => {
-    if (!currentUser) {
-      onNavigate('login');
-      return;
-    }
-    setPaymentTarget(evt);
-    setPaymentModalOpen(true);
-  };
-
-  const handlePaymentSuccess = (method: string, finalAmount: number) => {
-    if (!paymentTarget || !currentUser) return;
-
-    // Create registration in db
-    const currentRegs = db.getRegistrations();
-    const newReg = {
-      id: `reg_${Date.now()}`,
-      userId: currentUser.id,
-      eventId: paymentTarget.id,
-      paymentStatus: 'completed' as const,
-      paymentId: `pay_${Date.now()}`,
-      registeredAt: new Date().toISOString()
-    };
-    db.saveRegistrations([newReg, ...currentRegs]);
-
-    // Create payment record
-    const currentPayments = db.getPayments();
-    const newPayment = {
-      id: `pay_${Date.now()}`,
-      userId: currentUser.id,
-      userName: currentUser.name,
-      userEmail: currentUser.email,
-      amount: finalAmount,
-      paymentMethod: method,
-      status: 'success' as const,
-      date: new Date().toISOString(),
-      itemType: 'event' as const,
-      itemId: paymentTarget.id,
-      itemName: paymentTarget.title
-    };
-    db.savePayments([newPayment, ...currentPayments]);
-
-    // Update seat count
-    const updatedEvents = events.map(e => {
-      if (e.id === paymentTarget.id && e.seatsAvailable > 0) {
-        return { ...e, seatsAvailable: e.seatsAvailable - 1 };
-      }
-      return e;
-    });
-    setEvents(updatedEvents);
-    db.saveEvents(updatedEvents);
-
-    // Trigger downloaded ticket feedback
-    setTicketDownloaded(paymentTarget.id);
-    setTimeout(() => setTicketDownloaded(null), 6000);
+    setSelectedRegEvent(evt);
+    setDynamicRegModalOpen(true);
   };
 
   return (
@@ -308,9 +257,20 @@ export default function EventsPage({ onNavigate, currentUser }: EventsPageProps)
                         <span className="truncate">{evt.venue}</span>
                       </div>
                       <div className="font-extrabold text-sm text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">
-                        {evt.fees === 0 ? 'FREE' : `₹${evt.fees}`}
+                        {evt.fees === 0 && (!evt.feesTier || evt.feesTier.regular === 0) 
+                          ? 'FREE' 
+                          : evt.feesTier && evt.feesTier.earlyBird !== undefined && evt.feesTier.earlyBird > 0
+                            ? `From ₹${evt.feesTier.earlyBird}` 
+                            : `₹${evt.fees}`}
                       </div>
                     </div>
+
+                    {evt.deadline && (
+                      <div className="mt-2 text-[10px] text-amber-400 flex items-center gap-1 font-medium">
+                        <Clock className="h-3 w-3" />
+                        <span>Deadline: {evt.deadline}</span>
+                      </div>
+                    )}
 
                     {/* Registration Progress */}
                     <div className="mt-3">
@@ -445,15 +405,18 @@ export default function EventsPage({ onNavigate, currentUser }: EventsPageProps)
         </div>
       )}
 
-      {/* Razorpay Simulated Payment Modal */}
-      {paymentTarget && (
-        <PaymentModal
-          isOpen={paymentModalOpen}
-          onClose={() => setPaymentModalOpen(false)}
-          onSuccess={handlePaymentSuccess}
-          amount={paymentTarget.fees}
-          itemName={paymentTarget.title}
-          itemType="event"
+      {/* Dynamic Event Registration Modal */}
+      {selectedRegEvent && (
+        <EventRegistrationModal
+          isOpen={dynamicRegModalOpen}
+          onClose={() => setDynamicRegModalOpen(false)}
+          onSuccess={() => {
+            setEvents(db.getEvents());
+            setTicketDownloaded(selectedRegEvent?.title || 'Workshop Pass');
+            setAdminToast('Registration submitted successfully! Verification pending admin approval.');
+            setTimeout(() => setAdminToast(''), 5000);
+          }}
+          event={selectedRegEvent}
         />
       )}
 

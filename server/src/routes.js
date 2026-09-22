@@ -7,7 +7,8 @@ import {
   getCourses, getCourseById, enrollInCourse, getMyEnrollments, updateLessonProgress, toggleWishlist, addCourse, deleteCourse, addVideoLesson, updateCourse 
 } from './controllers/coursesController.js';
 import { 
-  getEvents, getEventById, registerForEvent, getMyRegistrations, cancelRegistration, addEvent, deleteEvent, getEventAttendees, updateEvent 
+  getEvents, getEventById, registerForEvent, getMyRegistrations, cancelRegistration, 
+  addEvent, deleteEvent, getEventAttendees, updateEvent, getEventRegistrations, updateRegistrationStatus 
 } from './controllers/eventsController.js';
 import { 
   getAllUsers, toggleBlockUser, changeUserRole, deleteUser, getAllPayments, refundPayment 
@@ -43,9 +44,12 @@ router.post('/courses/:id/video', verifyToken, requireAdmin, addVideoLesson);
 
 // --- Event Routes ---
 router.get('/events', getEvents);
+router.get('/events/registrations/all', verifyToken, requireAdmin, getEventRegistrations);
+router.get('/events/registrations/my', verifyToken, getMyRegistrations);
+router.get('/events/:id/registrations', verifyToken, requireAdmin, getEventRegistrations);
+router.put('/events/registrations/:id/status', verifyToken, requireAdmin, updateRegistrationStatus);
 router.get('/events/:id', getEventById);
 router.post('/events/register', verifyToken, registerForEvent);
-router.get('/events/registrations/my', verifyToken, getMyRegistrations);
 router.delete('/events/registrations/cancel/:id', verifyToken, cancelRegistration);
 // Event Admin CRUD
 router.post('/events/add', verifyToken, requireAdmin, addEvent);

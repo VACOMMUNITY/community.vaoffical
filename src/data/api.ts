@@ -130,12 +130,19 @@ const mapEnrollment = (e: any): Enrollment => {
 
 const mapEvent = (evt: any): Event => {
   if (!evt) return evt;
+  let feesTier = evt.fees_tier || evt.feesTier;
+  if (typeof feesTier === 'string') {
+    try { feesTier = JSON.parse(feesTier); } catch { feesTier = undefined; }
+  }
   return {
     ...evt,
     date: evt.event_date || evt.date,
     time: evt.event_time || evt.time,
     seatsTotal: evt.seats_total !== undefined ? evt.seats_total : evt.seatsTotal,
-    seatsAvailable: evt.seats_available !== undefined ? evt.seats_available : evt.seatsAvailable
+    seatsAvailable: evt.seats_available !== undefined ? evt.seats_available : evt.seatsAvailable,
+    feesTier: feesTier || undefined,
+    qrCode: evt.qr_code || evt.qrCode || undefined,
+    deadline: evt.deadline || undefined
   };
 };
 
@@ -145,9 +152,20 @@ const mapRegistration = (r: any): Registration => {
     ...r,
     userId: r.user_id || r.userId,
     eventId: r.event_id || r.eventId,
-    paymentStatus: r.payment_status || r.paymentStatus || 'completed',
+    paymentStatus: r.payment_status || r.paymentStatus || 'pending',
     paymentId: r.payment_id || r.paymentId,
-    registeredAt: r.registered_at || r.registeredAt || new Date().toISOString()
+    registeredAt: r.registered_at || r.registeredAt || new Date().toISOString(),
+    fullName: r.full_name || r.fullName || '',
+    email: r.email || '',
+    phone: r.phone || '',
+    collegeName: r.college_name || r.collegeName || '',
+    branch: r.branch || '',
+    year: r.year || '',
+    selectedTier: r.selected_tier || r.selectedTier || 'Regular',
+    amountPaid: r.amount_paid !== undefined ? Number(r.amount_paid) : (r.amountPaid || 0),
+    paymentScreenshot: r.payment_screenshot || r.paymentScreenshot || '',
+    confirmedPayment: r.confirmedPayment !== undefined ? r.confirmedPayment : true,
+    status: r.status || 'pending'
   };
 };
 
@@ -633,11 +651,40 @@ export const api = {
         return db.getEvents().find(e => e.id === id) || null;
       }
     },
-    register: async (eventId: string, amount: number, paymentMethod: string) => {
+    register: async (dataOrEventId: any, maybeAmount?: number, maybePaymentMethod?: string) => {
+      // Support both object param and legacy (eventId, amount, paymentMethod) signature
+      let payload: any;
+      if (typeof dataOrEventId === 'object') {
+        payload = dataOrEventId;
+      } else {
+        payload = {
+          eventId: dataOrEventId,
+          amount: maybeAmount || 0,
+          paymentMethod: maybePaymentMethod || 'UPI QR',
+          fullName: '',
+          email: '',
+          phone: '',
+          collegeName: '',
+          branch: '',
+          year: '',
+          selectedTier: 'Regular',
+          paymentScreenshot: '',
+          confirmedPayment: true
+        };
+      }
+
+      const { 
+        eventId, amount, paymentMethod, fullName, email, phone, 
+        collegeName, branch, year, selectedTier, paymentScreenshot, confirmedPayment 
+      } = payload;
+
       try {
         const res = await request('/events/register', {
           method: 'POST',
-          body: JSON.stringify({ eventId, amount, paymentMethod })
+          body: JSON.stringify({ 
+            eventId, amount, paymentMethod: paymentMethod || 'UPI QR',
+            fullName, email, phone, collegeName, branch, year, selectedTier, paymentScreenshot
+          })
         });
         return {
           ...res,
@@ -645,43 +692,97 @@ export const api = {
         };
       } catch {
         const user = db.getCurrentUser();
-        if (!user) throw new Error('Must be logged in to register');
         const registrations = db.getRegistrations();
         const newReg: Registration = {
           id: `reg_${Date.now()}`,
-          userId: user.id,
+          userId: user ? user.id : `usr_${Date.now()}`,
           eventId,
-          paymentStatus: 'completed',
+          paymentStatus: 'pending',
           paymentId: `pay_${Date.now()}`,
-          registeredAt: new Date().toISOString()
+          registeredAt: new Date().toISOString(),
+          fullName: fullName || (user ? user.name : 'Student'),
+          email: email || (user ? user.email : ''),
+          phone: phone || (user ? user.phone : ''),
+          collegeName: collegeName || '',
+          branch: branch || '',
+          year: year || '',
+          selectedTier: selectedTier || 'Regular',
+          amountPaid: Number(amount) || 0,
+          paymentScreenshot: paymentScreenshot || '',
+          confirmedPayment: confirmedPayment !== undefined ? confirmedPayment : true,
+          status: 'pending'
         };
         db.saveRegistrations([newReg, ...registrations]);
 
-        const events = db.getEvents().map(e => {
-          if (e.id === eventId && e.seatsAvailable > 0) {
-            return { ...e, seatsAvailable: e.seatsAvailable - 1 };
-          }
-          return e;
-        });
-        db.saveEvents(events);
-
         const payments = db.getPayments();
+        const events = db.getEvents();
         const evt = events.find(e => e.id === eventId);
         db.savePayments([{
           id: `pay_${Date.now()}`,
-          userId: user.id,
-          userName: user.name,
-          userEmail: user.email,
-          amount,
-          paymentMethod,
-          status: 'success',
+          userId: user ? user.id : 'usr_anon',
+          userName: newReg.fullName || 'Student',
+          userEmail: newReg.email || '',
+          amount: Number(amount) || 0,
+          paymentMethod: paymentMethod || 'UPI QR',
+          status: 'pending',
           date: new Date().toISOString(),
           itemType: 'event',
           itemId: eventId,
           itemName: evt ? evt.title : 'Event Pass'
         }, ...payments]);
 
-        return { message: 'Registered successfully', registration: newReg };
+        return { message: 'Registration submitted successfully! Pending admin approval.', registration: newReg };
+      }
+    },
+    getAllRegistrations: async (eventId?: string) => {
+      try {
+        const url = eventId && eventId !== 'all' ? `/events/${eventId}/registrations` : '/events/registrations/all';
+        const regs = await request(url);
+        return regs.map(mapRegistration);
+      } catch {
+        const all = db.getRegistrations();
+        if (eventId && eventId !== 'all') {
+          return all.filter(r => r.eventId === eventId);
+        }
+        return all;
+      }
+    },
+    updateRegistrationStatus: async (registrationId: string, status: 'approved' | 'rejected' | 'pending') => {
+      try {
+        const res = await request(`/events/registrations/${registrationId}/status`, {
+          method: 'PUT',
+          body: JSON.stringify({ status })
+        });
+        return {
+          ...res,
+          registration: mapRegistration(res.registration)
+        };
+      } catch {
+        const regs = db.getRegistrations().map(r => {
+          if (r.id === registrationId) {
+            return {
+              ...r,
+              status,
+              paymentStatus: status === 'approved' ? ('completed' as const) : (status === 'rejected' ? ('rejected' as const) : ('pending' as const))
+            };
+          }
+          return r;
+        });
+        db.saveRegistrations(regs);
+
+        if (status === 'approved') {
+          const targetReg = regs.find(r => r.id === registrationId);
+          if (targetReg) {
+            const events = db.getEvents().map(e => {
+              if (e.id === targetReg.eventId && e.seatsAvailable > 0) {
+                return { ...e, seatsAvailable: e.seatsAvailable - 1 };
+              }
+              return e;
+            });
+            db.saveEvents(events);
+          }
+        }
+        return { message: `Registration status updated to ${status}.` };
       }
     },
     getMyRegistrations: async () => {
@@ -705,7 +806,11 @@ export const api = {
         return { success: true };
       }
     },
-    add: async (event: { title: string; description: string; date: string; time: string; venue: string; fees: number; seatsTotal: number; category: string; banner?: string }) => {
+    add: async (event: { 
+      title: string; description: string; date: string; time: string; venue: string; 
+      fees: number; feesTier?: any; qrCode?: string; deadline?: string; 
+      seatsTotal: number; category: string; banner?: string 
+    }) => {
       try {
         const res = await request('/events/add', {
           method: 'POST',
@@ -722,6 +827,9 @@ export const api = {
           time: event.time,
           venue: event.venue,
           fees: event.fees,
+          feesTier: event.feesTier || { earlyBird: Math.round(event.fees * 0.75), regular: event.fees, spotEntry: Math.round(event.fees * 1.5) },
+          qrCode: event.qrCode || 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=communityva@razorpay%26pn=COMMUNITY.VA%26cu=INR',
+          deadline: event.deadline || '',
           seatsTotal: event.seatsTotal,
           seatsAvailable: event.seatsTotal,
           category: event.category,

@@ -24,6 +24,9 @@ CREATE TABLE IF NOT EXISTS events (
   event_time VARCHAR(50),
   venue VARCHAR(255),
   fees DECIMAL(10,2) DEFAULT 0.00,
+  fees_tier TEXT DEFAULT '{}',
+  qr_code TEXT,
+  deadline VARCHAR(50),
   seats_total INT DEFAULT 50,
   seats_available INT DEFAULT 50,
   category VARCHAR(100)
@@ -64,6 +67,16 @@ CREATE TABLE IF NOT EXISTS registrations (
   event_id VARCHAR(255) REFERENCES events(id) ON DELETE CASCADE,
   payment_status VARCHAR(50) DEFAULT 'pending',
   payment_id VARCHAR(255),
+  full_name VARCHAR(255),
+  email VARCHAR(255),
+  phone VARCHAR(50),
+  college_name VARCHAR(255),
+  branch VARCHAR(100),
+  year VARCHAR(50),
+  selected_tier VARCHAR(50),
+  amount_paid DECIMAL(10,2) DEFAULT 0.00,
+  payment_screenshot TEXT,
+  status VARCHAR(50) DEFAULT 'pending',
   registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(user_id, event_id)
 );

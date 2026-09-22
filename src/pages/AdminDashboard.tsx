@@ -1,10 +1,11 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useDatabase } from '../hooks/useDatabase';
-import { db } from '../data/mockDatabase';
+import { db, type Registration } from '../data/mockDatabase';
 import { api } from '../data/api';
 import { 
   Users as UsersIcon, Calendar, BookOpen, DollarSign, Plus, Edit, Trash2, 
-  Search, ShieldAlert, ArrowLeft, Send, Ban, Check, Download, Landmark, FileText, X, Menu
+  Search, ShieldAlert, ArrowLeft, Send, Ban, Check, Download, Landmark, FileText, X, Menu,
+  Ticket, Eye, CheckCircle2, XCircle, Image as ImageIcon, QrCode, Upload, ExternalLink
 } from 'lucide-react';
 import { 
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid 
@@ -17,7 +18,7 @@ interface AdminDashboardProps {
 
 export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardProps) {
   const { currentUser, users, courses, events, enrollments, payments } = useDatabase();
-  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'events' | 'courses' | 'payments' | 'notifications'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'events' | 'registrations' | 'courses' | 'payments' | 'notifications'>('overview');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   
   // Notification form
@@ -28,11 +29,40 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
   
   // Event Form states
   const [eventForm, setEventForm] = useState({
-    id: '', title: '', description: '', date: '', time: '', venue: '', fees: 0, seatsTotal: 50, category: 'Career Prep', banner: ''
+    id: '', 
+    title: '', 
+    description: '', 
+    date: '', 
+    time: '18:00 - 20:00', 
+    venue: '', 
+    fees: 199,
+    earlyBirdFee: 149,
+    regularFee: 199,
+    spotEntryFee: 299,
+    qrCode: '',
+    deadline: '',
+    seatsTotal: 50, 
+    category: 'Career Prep', 
+    banner: ''
   });
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [showEventForm, setShowEventForm] = useState(false);
   const [selectedEventAttendees, setSelectedEventAttendees] = useState<any[] | null>(null);
+
+  // Registrations Management state
+  const [registrations, setRegistrations] = useState<Registration[]>(() => db.getRegistrations());
+  const [selectedRegEventId, setSelectedRegEventId] = useState<string>('all');
+  const [regSearchTerm, setRegSearchTerm] = useState('');
+  const [regStatusFilter, setRegStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+  const [previewScreenshotUrl, setPreviewScreenshotUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    const handleDbSync = () => {
+      setRegistrations(db.getRegistrations());
+    };
+    window.addEventListener('db-update', handleDbSync);
+    return () => window.removeEventListener('db-update', handleDbSync);
+  }, []);
 
   // Course Form states
   const [courseForm, setCourseForm] = useState({
@@ -135,14 +165,25 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
   const handleSaveEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
+      const regularFee = Number(eventForm.regularFee || eventForm.fees || 0);
+      const earlyBirdFee = Number(eventForm.earlyBirdFee || 0);
+      const spotEntryFee = Number(eventForm.spotEntryFee || 0);
+
       const eventData = {
         title: eventForm.title,
         description: eventForm.description,
         date: eventForm.date,
         time: eventForm.time,
         venue: eventForm.venue,
-        fees: Number(eventForm.fees),
-        seatsTotal: Number(eventForm.seatsTotal),
+        fees: regularFee,
+        feesTier: {
+          earlyBird: earlyBirdFee,
+          regular: regularFee,
+          spotEntry: spotEntryFee
+        },
+        qrCode: eventForm.qrCode || '',
+        deadline: eventForm.deadline || '',
+        seatsTotal: Number(eventForm.seatsTotal) || 50,
         category: eventForm.category,
         banner: eventForm.banner || 'https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?auto=format&fit=crop&q=80&w=800'
       };
@@ -160,7 +201,11 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
         triggerToast('New Workshop created successfully!');
       }
       window.dispatchEvent(new Event('db-update'));
-      setEventForm({ id: '', title: '', description: '', date: '', time: '', venue: '', fees: 0, seatsTotal: 50, category: 'Career Prep', banner: '' });
+      setEventForm({ 
+        id: '', title: '', description: '', date: '', time: '18:00 - 20:00', venue: '', 
+        fees: 199, earlyBirdFee: 149, regularFee: 199, spotEntryFee: 299, 
+        qrCode: '', deadline: '', seatsTotal: 50, category: 'Career Prep', banner: '' 
+      });
       setShowEventForm(false);
     } catch (err: any) {
       triggerToast(err.message || 'Failed to save workshop.');
@@ -169,10 +214,121 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
 
   const handleEditEventTrigger = (evt: any) => {
     setEventForm({
-      id: evt.id, title: evt.title, description: evt.description, date: evt.date, time: evt.time, venue: evt.venue, fees: evt.fees, seatsTotal: evt.seatsTotal, category: evt.category, banner: evt.banner
+      id: evt.id, 
+      title: evt.title, 
+      description: evt.description, 
+      date: evt.date, 
+      time: evt.time, 
+      venue: evt.venue, 
+      fees: evt.fees || (evt.feesTier?.regular ?? 0),
+      earlyBirdFee: evt.feesTier?.earlyBird ?? 0,
+      regularFee: evt.feesTier?.regular ?? evt.fees ?? 0,
+      spotEntryFee: evt.feesTier?.spotEntry ?? 0,
+      qrCode: evt.qrCode || '',
+      deadline: evt.deadline || '',
+      seatsTotal: evt.seatsTotal, 
+      category: evt.category, 
+      banner: evt.banner
     });
     setEditingEventId(evt.id);
     setShowEventForm(true);
+  };
+
+  // --- Registration Operations ---
+  const handleApproveRegistration = async (regId: string) => {
+    try {
+      await api.events.updateRegistrationStatus(regId, 'approved');
+      triggerToast('Registration approved! Seat confirmed.');
+      setRegistrations(db.getRegistrations());
+      window.dispatchEvent(new Event('db-update'));
+    } catch (err: any) {
+      triggerToast(err.message || 'Failed to approve registration.');
+    }
+  };
+
+  const handleRejectRegistration = async (regId: string) => {
+    if (!window.confirm('Are you sure you want to reject this registration?')) return;
+    try {
+      await api.events.updateRegistrationStatus(regId, 'rejected');
+      triggerToast('Registration rejected.');
+      setRegistrations(db.getRegistrations());
+      window.dispatchEvent(new Event('db-update'));
+    } catch (err: any) {
+      triggerToast(err.message || 'Failed to reject registration.');
+    }
+  };
+
+  const handleExportRegistrationsCSV = () => {
+    const listToExport = registrations.filter(r => {
+      if (selectedRegEventId !== 'all' && r.eventId !== selectedRegEventId) return false;
+      if (regStatusFilter !== 'all' && r.status !== regStatusFilter) return false;
+      if (regSearchTerm) {
+        const q = regSearchTerm.toLowerCase();
+        return (
+          (r.fullName && r.fullName.toLowerCase().includes(q)) ||
+          (r.email && r.email.toLowerCase().includes(q)) ||
+          (r.phone && r.phone.toLowerCase().includes(q)) ||
+          (r.collegeName && r.collegeName.toLowerCase().includes(q)) ||
+          (r.branch && r.branch.toLowerCase().includes(q))
+        );
+      }
+      return true;
+    });
+
+    if (listToExport.length === 0) {
+      alert('No registrations available to export with the current filter.');
+      return;
+    }
+
+    const targetEvent = selectedRegEventId !== 'all' ? events.find(e => e.id === selectedRegEventId) : null;
+    const targetTitle = targetEvent ? targetEvent.title : 'All_Events';
+
+    const headers = [
+      'Registration ID',
+      'Event Title',
+      'Student Name',
+      'Email',
+      'Phone',
+      'College Name',
+      'Branch',
+      'Year of Study',
+      'Pass Tier',
+      'Amount Paid (INR)',
+      'Status',
+      'Registered At',
+      'Payment ID'
+    ];
+
+    const rows = listToExport.map(r => {
+      const evt = events.find(e => e.id === r.eventId);
+      return [
+        `"${r.id || ''}"`,
+        `"${(evt?.title || 'Event').replace(/"/g, '""')}"`,
+        `"${(r.fullName || '').replace(/"/g, '""')}"`,
+        `"${(r.email || '').replace(/"/g, '""')}"`,
+        `"${(r.phone || '').replace(/"/g, '""')}"`,
+        `"${(r.collegeName || '').replace(/"/g, '""')}"`,
+        `"${(r.branch || '').replace(/"/g, '""')}"`,
+        `"${(r.year || '').replace(/"/g, '""')}"`,
+        `"${(r.selectedTier || 'Regular').replace(/"/g, '""')}"`,
+        r.amountPaid || 0,
+        `"${(r.status || 'pending').toUpperCase()}"`,
+        `"${r.registeredAt || ''}"`,
+        `"${(r.paymentId || '').replace(/"/g, '""')}"`
+      ];
+    });
+
+    const csvString = '\uFEFF' + [headers.join(','), ...rows.map(row => row.join(','))].join('\r\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `COMMUNITY_VA_Registrations_${targetTitle.replace(/[^a-zA-Z0-9]/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+    triggerToast('Registrations exported as CSV successfully!');
   };
 
   const handleDeleteEvent = async (eventId: string) => {
@@ -436,6 +592,22 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
           >
             <Calendar className="h-4.5 w-4.5" />
             Event Constructor
+          </button>
+          <button
+            onClick={() => { setActiveTab('registrations'); setMobileMenuOpen(false); }}
+            className={`flex w-full items-center justify-between rounded-xl px-4 py-3 text-sm font-bold transition ${
+              activeTab === 'registrations' ? 'bg-brand-50 dark:bg-brand-950/20 text-brand-650 dark:text-brand-400' : 'text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Ticket className="h-4.5 w-4.5" />
+              <span>Registrations</span>
+            </div>
+            {registrations.filter(r => r.status === 'pending').length > 0 && (
+              <span className="rounded-full bg-amber-500 px-2 py-0.5 text-[10px] font-extrabold text-white animate-pulse">
+                {registrations.filter(r => r.status === 'pending').length}
+              </span>
+            )}
           </button>
           <button
             onClick={() => { setActiveTab('courses'); setMobileMenuOpen(false); }}
@@ -739,7 +911,7 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       <div>
                         <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Venue</label>
                         <input
@@ -750,32 +922,142 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
                           className="w-full rounded-lg border border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-900 p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white"
                         />
                       </div>
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Seats Total</label>
-                        <input
-                          type="number"
-                          required
-                          value={eventForm.seatsTotal}
-                          onChange={(e) => setEventForm({ ...eventForm, seatsTotal: Number(e.target.value) })}
-                          className="w-full rounded-lg border border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-900 p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Fees (₹)</label>
-                        <input
-                          type="number"
-                          required
-                          value={eventForm.fees}
-                          onChange={(e) => setEventForm({ ...eventForm, fees: Number(e.target.value) })}
-                          className="w-full rounded-lg border border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-900 p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white"
-                        />
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Maximum Seats</label>
+                          <input
+                            type="number"
+                            required
+                            min="1"
+                            value={eventForm.seatsTotal}
+                            onChange={(e) => setEventForm({ ...eventForm, seatsTotal: Number(e.target.value) })}
+                            className="w-full rounded-lg border border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-900 p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Reg. Deadline</label>
+                          <input
+                            type="date"
+                            value={eventForm.deadline}
+                            onChange={(e) => setEventForm({ ...eventForm, deadline: e.target.value })}
+                            className="w-full rounded-lg border border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-900 p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white"
+                          />
+                        </div>
                       </div>
                     </div>
 
+                    {/* Multi-Tier Entry Fees */}
+                    <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-3 bg-slate-50/50 dark:bg-slate-950/20">
+                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-2">
+                        Entry Fee Tiers (₹ INR)
+                      </label>
+                      <div className="grid grid-cols-3 gap-3">
+                        <div>
+                          <label className="block text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 mb-1">
+                            Early Bird (₹)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="149"
+                            value={eventForm.earlyBirdFee}
+                            onChange={(e) => setEventForm({ ...eventForm, earlyBirdFee: Number(e.target.value) })}
+                            className="w-full rounded-lg border border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-900 p-2 text-xs focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-semibold text-blue-600 dark:text-blue-400 mb-1">
+                            Regular (₹) *
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            required
+                            placeholder="199"
+                            value={eventForm.regularFee}
+                            onChange={(e) => setEventForm({ ...eventForm, regularFee: Number(e.target.value), fees: Number(e.target.value) })}
+                            className="w-full rounded-lg border border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-900 p-2 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-semibold text-purple-600 dark:text-purple-400 mb-1">
+                            Spot Entry (₹)
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            placeholder="299"
+                            value={eventForm.spotEntryFee}
+                            onChange={(e) => setEventForm({ ...eventForm, spotEntryFee: Number(e.target.value) })}
+                            className="w-full rounded-lg border border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-900 p-2 text-xs focus:outline-none focus:ring-2 focus:ring-purple-500 dark:text-white"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* UPI QR Code Upload */}
+                    <div className="rounded-xl border border-slate-200 dark:border-slate-800 p-3 bg-slate-50/50 dark:bg-slate-950/20">
+                      <label className="block text-[10px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                        <QrCode className="h-3.5 w-3.5 text-brand-600" />
+                        UPI QR Code (Upload Image)
+                      </label>
+                      <div className="flex flex-col sm:flex-row items-center gap-3">
+                        {eventForm.qrCode ? (
+                          <div className="relative">
+                            <img 
+                              src={eventForm.qrCode} 
+                              alt="Uploaded QR Preview" 
+                              className="h-20 w-20 object-contain rounded-lg border border-slate-300 dark:border-slate-700 bg-white p-1"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => setEventForm({ ...eventForm, qrCode: '' })}
+                              className="absolute -top-2 -right-2 rounded-full bg-red-600 text-white p-0.5 shadow hover:bg-red-700"
+                              title="Remove QR code"
+                            >
+                              <X className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ) : (
+                          <div className="h-20 w-20 rounded-lg border-2 border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center justify-center text-slate-400 bg-white dark:bg-slate-900">
+                            <QrCode className="h-6 w-6" />
+                            <span className="text-[9px] mt-1">No QR</span>
+                          </div>
+                        )}
+                        <div className="flex-1 w-full space-y-1.5">
+                          <label className="inline-flex items-center gap-1.5 rounded-lg bg-brand-50 dark:bg-brand-950/40 text-brand-600 dark:text-brand-400 px-3 py-1.5 text-xs font-semibold hover:bg-brand-100 transition cursor-pointer border border-brand-200 dark:border-brand-800">
+                            <Upload className="h-3.5 w-3.5" />
+                            <span>Upload QR Code Image</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                if (!file) return;
+                                const reader = new FileReader();
+                                reader.onload = (loadEvt) => {
+                                  if (loadEvt.target?.result) {
+                                    setEventForm({ ...eventForm, qrCode: loadEvt.target.result as string });
+                                  }
+                                };
+                                reader.readAsDataURL(file);
+                              }}
+                            />
+                          </label>
+                          <p className="text-[10px] text-slate-400">
+                            Upload PNG/JPG of your Google Pay, PhonePe, or Paytm merchant QR. If left blank, default COMMUNITY.VA QR will be used.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Banner Image */}
                     <div>
                       <label className="block text-[10px] font-bold text-slate-400 uppercase mb-1">Banner Image URL</label>
                       <input
                         type="text"
+                        placeholder="https://images.unsplash.com/..."
                         value={eventForm.banner}
                         onChange={(e) => setEventForm({ ...eventForm, banner: e.target.value })}
                         className="w-full rounded-lg border border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-900 p-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white"
@@ -821,6 +1103,17 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
                         <td className="p-4">{evt.seatsAvailable} / {evt.seatsTotal} available</td>
                         <td className="p-4">{evt.fees === 0 ? 'Free' : `₹${evt.fees}`}</td>
                         <td className="p-4 text-right space-x-1.5">
+                          <button
+                            onClick={() => {
+                              setSelectedRegEventId(evt.id);
+                              setActiveTab('registrations');
+                            }}
+                            className="rounded-lg bg-brand-500/10 hover:bg-brand-500/20 text-brand-600 dark:text-brand-400 px-2.5 py-1.5 font-bold text-xs inline-flex items-center gap-1 transition"
+                            title="View Registrations for this event"
+                          >
+                            <Ticket className="h-3.5 w-3.5" />
+                            <span>Registrations</span>
+                          </button>
                           <button
                             onClick={() => handleShowAttendees(evt.id)}
                             className="rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-750 px-2.5 py-1.5 font-bold"
@@ -883,6 +1176,262 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
                   )}
                 </div>
               )}
+            </div>
+          )}
+
+          {/* TAB: REGISTRATIONS MANAGEMENT */}
+          {activeTab === 'registrations' && (
+            <div className="space-y-6">
+              {/* Header and Quick Stats */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div>
+                  <h3 className="font-extrabold text-sm text-slate-500 uppercase tracking-wider">Event Registrations</h3>
+                  <p className="text-xs text-slate-400 mt-1">Review student registrations, verify payment screenshots, and confirm seats.</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleExportRegistrationsCSV}
+                    className="flex items-center gap-1.5 rounded-xl bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 text-white font-bold text-xs py-2 px-3 shadow transition cursor-pointer"
+                  >
+                    <Download className="h-4 w-4" />
+                    <span>Export CSV</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Status Counters */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                <div 
+                  onClick={() => setRegStatusFilter('all')}
+                  className={`cursor-pointer rounded-xl border p-3 transition ${regStatusFilter === 'all' ? 'border-brand-500 bg-brand-50/50 dark:bg-brand-950/20' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'}`}
+                >
+                  <p className="text-[10px] font-bold uppercase text-slate-400">Total Entries</p>
+                  <p className="text-lg font-black text-slate-900 dark:text-white mt-0.5">
+                    {registrations.filter(r => selectedRegEventId === 'all' || r.eventId === selectedRegEventId).length}
+                  </p>
+                </div>
+                <div 
+                  onClick={() => setRegStatusFilter('pending')}
+                  className={`cursor-pointer rounded-xl border p-3 transition ${regStatusFilter === 'pending' ? 'border-amber-500 bg-amber-50/50 dark:bg-amber-950/20' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'}`}
+                >
+                  <p className="text-[10px] font-bold uppercase text-amber-500">Pending Review</p>
+                  <p className="text-lg font-black text-amber-600 dark:text-amber-400 mt-0.5">
+                    {registrations.filter(r => (selectedRegEventId === 'all' || r.eventId === selectedRegEventId) && r.status === 'pending').length}
+                  </p>
+                </div>
+                <div 
+                  onClick={() => setRegStatusFilter('approved')}
+                  className={`cursor-pointer rounded-xl border p-3 transition ${regStatusFilter === 'approved' ? 'border-emerald-500 bg-emerald-50/50 dark:bg-emerald-950/20' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'}`}
+                >
+                  <p className="text-[10px] font-bold uppercase text-emerald-500">Approved</p>
+                  <p className="text-lg font-black text-emerald-600 dark:text-emerald-400 mt-0.5">
+                    {registrations.filter(r => (selectedRegEventId === 'all' || r.eventId === selectedRegEventId) && r.status === 'approved').length}
+                  </p>
+                </div>
+                <div 
+                  onClick={() => setRegStatusFilter('rejected')}
+                  className={`cursor-pointer rounded-xl border p-3 transition ${regStatusFilter === 'rejected' ? 'border-rose-500 bg-rose-50/50 dark:bg-rose-950/20' : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:border-slate-300'}`}
+                >
+                  <p className="text-[10px] font-bold uppercase text-rose-500">Rejected</p>
+                  <p className="text-lg font-black text-rose-600 dark:text-rose-400 mt-0.5">
+                    {registrations.filter(r => (selectedRegEventId === 'all' || r.eventId === selectedRegEventId) && r.status === 'rejected').length}
+                  </p>
+                </div>
+              </div>
+
+              {/* Filters Bar: Event Select + Search + Status Pills */}
+              <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200/60 dark:border-slate-850 shadow-sm">
+                <div className="flex flex-1 flex-col sm:flex-row items-center gap-3">
+                  {/* Event Filter Dropdown */}
+                  <div className="w-full sm:w-64">
+                    <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Filter by Event</label>
+                    <select
+                      value={selectedRegEventId}
+                      onChange={(e) => setSelectedRegEventId(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-850 py-2 px-3 text-xs font-semibold text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-brand-500"
+                    >
+                      <option value="all">All Events ({registrations.length})</option>
+                      {events.map((evt) => {
+                        const count = registrations.filter(r => r.eventId === evt.id).length;
+                        return (
+                          <option key={evt.id} value={evt.id}>
+                            {evt.title} ({count})
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </div>
+
+                  {/* Search Bar */}
+                  <div className="w-full sm:flex-1">
+                    <label className="block text-[10px] font-bold uppercase text-slate-400 mb-1">Search Registrant</label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                      <input
+                        type="text"
+                        placeholder="Search by student name, email, phone, college..."
+                        value={regSearchTerm}
+                        onChange={(e) => setRegSearchTerm(e.target.value)}
+                        className="w-full rounded-xl border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-850 py-2 pl-9 pr-3 text-xs focus:outline-none focus:ring-2 focus:ring-brand-500 dark:text-white"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Status Filter Buttons */}
+                <div className="flex items-center gap-1.5 pt-2 md:pt-4 overflow-x-auto">
+                  {(['all', 'pending', 'approved', 'rejected'] as const).map((status) => (
+                    <button
+                      key={status}
+                      onClick={() => setRegStatusFilter(status)}
+                      className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition ${
+                        regStatusFilter === status
+                          ? 'bg-brand-600 text-white shadow-sm'
+                          : 'bg-slate-100 dark:bg-slate-800 text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                      }`}
+                    >
+                      {status}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Registrations Table */}
+              <div className="rounded-2xl border border-slate-200 dark:border-slate-850 bg-white dark:bg-slate-900 overflow-hidden shadow-sm">
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="bg-slate-50 dark:bg-slate-950/40 text-slate-400 font-bold border-b border-slate-100 dark:border-slate-800">
+                        <th className="p-4">Student Details</th>
+                        <th className="p-4">College & Branch</th>
+                        <th className="p-4">Event</th>
+                        <th className="p-4">Pass & Fee</th>
+                        <th className="p-4">Payment Receipt</th>
+                        <th className="p-4">Status</th>
+                        <th className="p-4 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {(() => {
+                        const filtered = registrations.filter(r => {
+                          if (selectedRegEventId !== 'all' && r.eventId !== selectedRegEventId) return false;
+                          if (regStatusFilter !== 'all' && r.status !== regStatusFilter) return false;
+                          if (regSearchTerm) {
+                            const q = regSearchTerm.toLowerCase();
+                            return (
+                              (r.fullName && r.fullName.toLowerCase().includes(q)) ||
+                              (r.email && r.email.toLowerCase().includes(q)) ||
+                              (r.phone && r.phone.toLowerCase().includes(q)) ||
+                              (r.collegeName && r.collegeName.toLowerCase().includes(q)) ||
+                              (r.branch && r.branch.toLowerCase().includes(q))
+                            );
+                          }
+                          return true;
+                        });
+
+                        if (filtered.length === 0) {
+                          return (
+                            <tr>
+                              <td colSpan={7} className="p-8 text-center text-slate-400">
+                                <Ticket className="h-8 w-8 mx-auto mb-2 text-slate-300 dark:text-slate-700" />
+                                <p className="font-semibold">No registrations found</p>
+                                <p className="text-[11px] mt-0.5">Try clearing filters or search criteria.</p>
+                              </td>
+                            </tr>
+                          );
+                        }
+
+                        return filtered.map((reg) => {
+                          const evt = events.find(e => e.id === reg.eventId);
+                          return (
+                            <tr key={reg.id} className="border-b border-slate-100 dark:border-slate-800/80 hover:bg-slate-50/40 dark:hover:bg-slate-950/10">
+                              <td className="p-4">
+                                <p className="font-bold text-slate-900 dark:text-white">{reg.fullName || 'Anonymous'}</p>
+                                <p className="text-[11px] text-slate-500">{reg.email}</p>
+                                <p className="text-[10px] text-slate-400">{reg.phone}</p>
+                              </td>
+                              <td className="p-4">
+                                <p className="font-medium text-slate-800 dark:text-slate-200">{reg.collegeName || 'N/A'}</p>
+                                <p className="text-[11px] text-slate-500">{reg.branch || '—'}{reg.year ? ` • Year ${reg.year}` : ''}</p>
+                              </td>
+                              <td className="p-4">
+                                <p className="font-semibold text-slate-900 dark:text-white line-clamp-1">{evt?.title || 'Unknown Event'}</p>
+                                <p className="text-[10px] text-slate-400">{evt?.date} • {evt?.time}</p>
+                              </td>
+                              <td className="p-4">
+                                <span className="inline-block px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 mb-1">
+                                  {reg.selectedTier || 'Regular'}
+                                </span>
+                                <p className="font-bold text-emerald-600 dark:text-emerald-400">
+                                  ₹{reg.amountPaid ?? (evt?.fees || 0)}
+                                </p>
+                              </td>
+                              <td className="p-4">
+                                {reg.paymentScreenshot ? (
+                                  <button
+                                    onClick={() => setPreviewScreenshotUrl(reg.paymentScreenshot || null)}
+                                    className="group relative flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-slate-200 dark:border-slate-750 hover:border-brand-500 bg-slate-50 dark:bg-slate-800 transition cursor-pointer"
+                                  >
+                                    <img 
+                                      src={reg.paymentScreenshot} 
+                                      alt="Proof thumbnail" 
+                                      className="h-7 w-7 rounded object-cover border border-slate-200 dark:border-slate-750"
+                                    />
+                                    <span className="text-[11px] font-semibold text-brand-600 dark:text-brand-400 group-hover:underline flex items-center gap-1">
+                                      <Eye className="h-3 w-3" />
+                                      View Receipt
+                                    </span>
+                                  </button>
+                                ) : (
+                                  <span className="text-[11px] text-slate-400 italic">No receipt</span>
+                                )}
+                              </td>
+                              <td className="p-4">
+                                <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-extrabold uppercase tracking-wider ${
+                                  reg.status === 'approved'
+                                    ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
+                                    : reg.status === 'rejected'
+                                    ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/20'
+                                    : 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                                }`}>
+                                  {reg.status === 'approved' && <CheckCircle2 className="h-3 w-3" />}
+                                  {reg.status === 'rejected' && <XCircle className="h-3 w-3" />}
+                                  {(!reg.status || reg.status === 'pending') && <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />}
+                                  {reg.status || 'pending'}
+                                </span>
+                              </td>
+                              <td className="p-4 text-right">
+                                <div className="inline-flex items-center gap-1.5 justify-end">
+                                  {reg.status !== 'approved' && (
+                                    <button
+                                      onClick={() => handleApproveRegistration(reg.id)}
+                                      className="inline-flex items-center gap-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-2.5 py-1.5 text-xs shadow-sm transition cursor-pointer"
+                                      title="Approve registration and confirm seat"
+                                    >
+                                      <Check className="h-3.5 w-3.5" />
+                                      <span>Approve</span>
+                                    </button>
+                                  )}
+                                  {reg.status !== 'rejected' && (
+                                    <button
+                                      onClick={() => handleRejectRegistration(reg.id)}
+                                      className="inline-flex items-center gap-1 rounded-lg bg-rose-500/10 hover:bg-rose-500/25 text-rose-600 dark:text-rose-400 font-bold px-2.5 py-1.5 text-xs transition cursor-pointer"
+                                      title="Reject registration"
+                                    >
+                                      <X className="h-3.5 w-3.5" />
+                                      <span>Reject</span>
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        });
+                      })()}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
             </div>
           )}
 
@@ -1190,6 +1739,52 @@ export default function AdminDashboard({ onLogout, onNavigate }: AdminDashboardP
 
         </main>
       </div>
+
+      {/* Lightbox Screenshot Modal */}
+      {previewScreenshotUrl && (
+        <div 
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
+          onClick={() => setPreviewScreenshotUrl(null)}
+        >
+          <div 
+            className="relative max-w-2xl w-full bg-white dark:bg-slate-900 rounded-2xl p-4 shadow-2xl border border-slate-200 dark:border-slate-800 overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3 mb-3">
+              <div className="flex items-center gap-2">
+                <ImageIcon className="h-5 w-5 text-brand-600" />
+                <h4 className="font-extrabold text-sm text-slate-900 dark:text-white">UPI Payment Receipt Proof</h4>
+              </div>
+              <div className="flex items-center gap-2">
+                <a
+                  href={previewScreenshotUrl}
+                  download="payment_proof.png"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="p-1.5 text-slate-500 hover:text-slate-800 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition"
+                  title="Open / Download Full Image"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </a>
+                <button
+                  onClick={() => setPreviewScreenshotUrl(null)}
+                  className="p-1.5 text-slate-400 hover:text-slate-750 dark:hover:text-white rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition cursor-pointer"
+                  title="Close Preview"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </div>
+            <div className="max-h-[75vh] overflow-auto flex items-center justify-center bg-slate-950/40 rounded-xl p-2 border border-slate-100 dark:border-slate-800">
+              <img
+                src={previewScreenshotUrl}
+                alt="Payment Screenshot Preview"
+                className="max-h-[70vh] w-auto max-w-full object-contain rounded-lg shadow-md"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

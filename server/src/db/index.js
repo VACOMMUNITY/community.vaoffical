@@ -64,6 +64,9 @@ export const query = async (text, params = []) => {
       if ('is_blocked' in newRow) {
         newRow.is_blocked = newRow.is_blocked === 1 || newRow.is_blocked === true || newRow.is_blocked === 'true';
       }
+      if ('fees_tier' in newRow && typeof newRow.fees_tier === 'string') {
+        try { newRow.fees_tier = JSON.parse(newRow.fees_tier); } catch { newRow.fees_tier = {}; }
+      }
       return newRow;
     });
 
@@ -96,6 +99,29 @@ export const initDB = async () => {
     // SQLite can execute multiple statements in exec()
     await db.exec(schemaSql);
     console.log('Schema tables verified/created successfully.');
+
+    // Migration helper for new columns
+    const tableColumns = async (tbl) => {
+      const info = await db.all(`PRAGMA table_info(${tbl})`);
+      return info.map(c => c.name);
+    };
+
+    const eventCols = await tableColumns('events');
+    if (!eventCols.includes('fees_tier')) await db.run("ALTER TABLE events ADD COLUMN fees_tier TEXT DEFAULT '{}'");
+    if (!eventCols.includes('qr_code')) await db.run("ALTER TABLE events ADD COLUMN qr_code TEXT");
+    if (!eventCols.includes('deadline')) await db.run("ALTER TABLE events ADD COLUMN deadline VARCHAR(50)");
+
+    const regCols = await tableColumns('registrations');
+    if (!regCols.includes('full_name')) await db.run("ALTER TABLE registrations ADD COLUMN full_name VARCHAR(255)");
+    if (!regCols.includes('email')) await db.run("ALTER TABLE registrations ADD COLUMN email VARCHAR(255)");
+    if (!regCols.includes('phone')) await db.run("ALTER TABLE registrations ADD COLUMN phone VARCHAR(50)");
+    if (!regCols.includes('college_name')) await db.run("ALTER TABLE registrations ADD COLUMN college_name VARCHAR(255)");
+    if (!regCols.includes('branch')) await db.run("ALTER TABLE registrations ADD COLUMN branch VARCHAR(100)");
+    if (!regCols.includes('year')) await db.run("ALTER TABLE registrations ADD COLUMN year VARCHAR(50)");
+    if (!regCols.includes('selected_tier')) await db.run("ALTER TABLE registrations ADD COLUMN selected_tier VARCHAR(50)");
+    if (!regCols.includes('amount_paid')) await db.run("ALTER TABLE registrations ADD COLUMN amount_paid DECIMAL(10,2) DEFAULT 0.00");
+    if (!regCols.includes('payment_screenshot')) await db.run("ALTER TABLE registrations ADD COLUMN payment_screenshot TEXT");
+    if (!regCols.includes('status')) await db.run("ALTER TABLE registrations ADD COLUMN status VARCHAR(50) DEFAULT 'pending'");
 
     // Auto-seed check
     const userCheck = await db.get('SELECT COUNT(*) as count FROM users');

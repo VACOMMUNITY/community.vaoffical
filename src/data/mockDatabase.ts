@@ -14,6 +14,12 @@ export interface User {
   couponsUsed: string[]; // coupon codes
 }
 
+export interface EventFees {
+  earlyBird?: number;
+  regular: number;
+  spotEntry?: number;
+}
+
 export interface Event {
   id: string;
   title: string;
@@ -23,6 +29,9 @@ export interface Event {
   time: string;
   venue: string;
   fees: number;
+  feesTier?: EventFees;
+  qrCode?: string;
+  deadline?: string;
   seatsTotal: number;
   seatsAvailable: number;
   category: string;
@@ -32,9 +41,20 @@ export interface Registration {
   id: string;
   userId: string;
   eventId: string;
-  paymentStatus: 'completed' | 'pending';
+  paymentStatus: 'completed' | 'pending' | 'rejected';
   paymentId: string;
   registeredAt: string;
+  fullName?: string;
+  email?: string;
+  phone?: string;
+  collegeName?: string;
+  branch?: string;
+  year?: string;
+  selectedTier?: string;
+  amountPaid?: number;
+  paymentScreenshot?: string;
+  confirmedPayment?: boolean;
+  status?: 'pending' | 'approved' | 'rejected';
 }
 
 export interface VideoLesson {
@@ -82,7 +102,7 @@ export interface Payment {
   userEmail: string;
   amount: number;
   paymentMethod: string;
-  status: 'success' | 'refunded';
+  status: 'success' | 'refunded' | 'pending';
   date: string;
   itemType: 'course' | 'event';
   itemId: string;
@@ -245,7 +265,10 @@ const initialEvents: Event[] = [
     date: '2026-06-25',
     time: '18:00 - 20:00',
     venue: 'Zoom Online Meeting',
-    fees: 15,
+    fees: 199,
+    feesTier: { earlyBird: 149, regular: 199, spotEntry: 299 },
+    qrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=communityva@razorpay%26pn=COMMUNITY.VA%26cu=INR',
+    deadline: '2026-06-24',
     seatsTotal: 50,
     seatsAvailable: 45,
     category: 'Career Prep'
@@ -257,8 +280,11 @@ const initialEvents: Event[] = [
     banner: 'https://images.unsplash.com/photo-1515187029135-18ee286d815b?auto=format&fit=crop&q=80&w=800',
     date: '2026-07-12',
     time: '15:00 - 17:30',
-    venue: 'Vibrant Hub, New York & Hybrid',
+    venue: 'Vibrant Hub, Hyderabad & Hybrid',
     fees: 0,
+    feesTier: { earlyBird: 0, regular: 0, spotEntry: 99 },
+    qrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=communityva@razorpay%26pn=COMMUNITY.VA%26cu=INR',
+    deadline: '2026-07-11',
     seatsTotal: 150,
     seatsAvailable: 135,
     category: 'Networking'
@@ -270,8 +296,11 @@ const initialEvents: Event[] = [
     banner: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&q=80&w=800',
     date: '2026-08-02',
     time: '10:00 - 16:00',
-    venue: 'Convention Center, Hall B',
-    fees: 49,
+    venue: 'Convention Center, Hall B, Hyderabad',
+    fees: 299,
+    feesTier: { earlyBird: 199, regular: 299, spotEntry: 499 },
+    qrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=communityva@razorpay%26pn=COMMUNITY.VA%26cu=INR',
+    deadline: '2026-08-01',
     seatsTotal: 30,
     seatsAvailable: 28,
     category: 'Public Speaking'
@@ -298,35 +327,35 @@ const initialCourses: Course[] = [
     ],
     resources: [
       { name: 'Speech Outline Worksheet.pdf', url: '#', type: 'PDF' },
-      { name: 'Presentation Performance Checklist.pdf', url: '#', type: 'PDF' }
+      { name: 'Vocal Warmups Audio Guide.mp3', url: '#', type: 'Audio' }
     ]
   },
   {
     id: 'crs_2',
-    title: 'Resume Building & High-Impact Interview Strategy',
-    description: 'Transform your resume into an ATS-friendly, recruiter-grabbing showcase. Master behavior-based answers (STAR method) and negotiation strategies.',
-    thumbnail: 'https://images.unsplash.com/photo-1586281380349-632531db7ed4?auto=format&fit=crop&q=80&w=600',
+    title: 'Mastering the Technical & Behavioral Interview',
+    description: 'Ace every behavioral round using the STAR framework. Decode recruiter psychology and turn difficult questions into compelling career narratives.',
+    thumbnail: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&q=80&w=600',
     price: 29,
-    instructor: 'Clara Oswald (Ex-HR Google)',
+    instructor: 'Elena Rostova (Ex-FAANG Recruiter)',
     category: 'Career Prep',
     rating: 4.9,
-    reviewsCount: 215,
+    reviewsCount: 210,
     videos: [
-      { id: 'v2_1', title: '1. Decoding Applicant Tracking Systems (ATS)', duration: '10:15', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4' },
-      { id: 'v2_2', title: '2. Framing Experience using STAR Framework', duration: '14:50', videoUrl: 'https://www.w3schools.com/html/movie.mp4' },
-      { id: 'v2_3', title: '3. Common Behavioral Interview Prompts', duration: '16:20', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4' },
-      { id: 'v2_4', title: '4. The Psychology of Salary Negotiating', duration: '13:10', videoUrl: 'https://www.w3schools.com/html/movie.mp4' }
+      { id: 'v2_1', title: '1. Unpacking the STAR Method', duration: '14:20', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4' },
+      { id: 'v2_2', title: '2. Telling Your Story with Impact', duration: '11:00', videoUrl: 'https://www.w3schools.com/html/movie.mp4' },
+      { id: 'v2_3', title: '3. Answering "What Is Your Weakness?"', duration: '07:40', videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4' },
+      { id: 'v2_4', title: '4. Questions to Ask Your Interviewer', duration: '10:15', videoUrl: 'https://www.w3schools.com/html/movie.mp4' }
     ],
     resources: [
-      { name: 'ATS Friendly Resume Template.docx', url: '#', type: 'DOCX' },
-      { name: 'STAR Interview Cheat Sheet.pdf', url: '#', type: 'PDF' }
+      { name: 'STAR Framework Cheat Sheet.pdf', url: '#', type: 'PDF' },
+      { name: 'Top 50 Behavioral Questions.pdf', url: '#', type: 'PDF' }
     ]
   },
   {
     id: 'crs_3',
-    title: 'Emotional Intelligence & Leadership Foundations',
-    description: 'Develop the emotional maturity, empathy, and active listening capabilities needed to manage conflicts and effectively lead high-performing teams.',
-    thumbnail: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=600',
+    title: 'Leadership & Emotional Intelligence for High Performers',
+    description: 'Cultivate empathy, active listening, and conflict resolution tactics essential for moving from individual contributor to leadership.',
+    thumbnail: 'https://images.unsplash.com/photo-1522202176988-66273c2fd55f?auto=format&fit=crop&q=80&w=600',
     price: 49,
     instructor: 'Marcus Aurelius (Management Consultant)',
     category: 'Leadership',
@@ -371,7 +400,17 @@ const initialRegistrations: Registration[] = [
     eventId: 'evt_1',
     paymentStatus: 'completed',
     paymentId: 'pay_evt_1',
-    registeredAt: '2026-06-05T10:12:00Z'
+    registeredAt: '2026-06-05T10:12:00Z',
+    fullName: 'Alex Mercer',
+    email: 'alex@example.com',
+    phone: '+91 98765 43210',
+    collegeName: 'Osmania University, Hyderabad',
+    branch: 'Computer Science & Engineering',
+    year: '3rd Year',
+    selectedTier: 'Early Bird',
+    amountPaid: 149,
+    confirmedPayment: true,
+    status: 'approved'
   }
 ];
 
