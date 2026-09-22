@@ -35,6 +35,17 @@ export interface Event {
   seatsTotal: number;
   seatsAvailable: number;
   category: string;
+  eventType?: 'online' | 'offline' | 'hybrid';
+  status?: 'draft' | 'published' | 'closed';
+}
+
+export interface EventCategory {
+  id: string;
+  name: string;
+  description?: string;
+  icon?: string;
+  color?: string;
+  isCustom?: boolean;
 }
 
 export interface Registration {
@@ -51,10 +62,17 @@ export interface Registration {
   branch?: string;
   year?: string;
   selectedTier?: string;
+  passTier?: string;
   amountPaid?: number;
   paymentScreenshot?: string;
   confirmedPayment?: boolean;
   status?: 'pending' | 'approved' | 'rejected';
+  attended?: boolean;
+  attendedAt?: string;
+  checkInCode?: string;
+  certificateIssued?: boolean;
+  certificateId?: string;
+  certificateIssuedAt?: string;
 }
 
 export interface VideoLesson {
@@ -728,6 +746,26 @@ export const initialTestimonials: Testimonial[] = [
   }
 ];
 
+export const initialCategories: EventCategory[] = [
+  { id: 'cat_workshops', name: 'Workshops', description: 'Hands-on practical skill building masterclasses', color: 'blue', isCustom: false },
+  { id: 'cat_jam_sessions', name: 'Jam Sessions', description: 'Musical and creative collaborative acoustic jams', color: 'amber', isCustom: false },
+  { id: 'cat_open_mic', name: 'Open Mic', description: 'Poetry, stand-up comedy, and storytelling stages', color: 'purple', isCustom: false },
+  { id: 'cat_talent_hunt', name: 'Talent Hunt', description: 'Inter-college competitive talent discoveries', color: 'rose', isCustom: false },
+  { id: 'cat_box_cricket', name: 'Box Cricket', description: 'Fast-paced turf cricket tournaments', color: 'emerald', isCustom: false },
+  { id: 'cat_sports', name: 'Sports Events', description: 'Athletics, badminton, football, and esports tourneys', color: 'green', isCustom: false },
+  { id: 'cat_cultural', name: 'Cultural Events', description: 'Dance, theatre, music fests, and heritage celebrations', color: 'orange', isCustom: false },
+  { id: 'cat_photography', name: 'Photography Contest', description: 'Visual storytelling and lens competitions', color: 'cyan', isCustom: false },
+  { id: 'cat_short_film', name: 'Short Film Competition', description: 'Filmmaking, directing, and screenwriting festivals', color: 'indigo', isCustom: false },
+  { id: 'cat_networking', name: 'Networking Meetups', description: 'Peer mixers, founder meetups, and alumni connects', color: 'teal', isCustom: false },
+  { id: 'cat_career', name: 'Career Sessions', description: 'Resume clinics, industry transitions, and guidance', color: 'blue', isCustom: false },
+  { id: 'cat_mock_interviews', name: 'Mock Interviews', description: '1-on-1 simulated interviews with senior executives', color: 'violet', isCustom: false },
+  { id: 'cat_leadership', name: 'Leadership Programs', description: 'Team dynamics, public speaking, and presence cohorts', color: 'fuchsia', isCustom: false },
+  { id: 'cat_entrepreneurship', name: 'Entrepreneurship Events', description: 'Pitch decks, startup bootcamps, and angel pitch sessions', color: 'amber', isCustom: false },
+  { id: 'cat_college_collab', name: 'College Collaborations', description: 'Campus-wide flagship summits and MOU events', color: 'sky', isCustom: false },
+  { id: 'cat_online', name: 'Online Events', description: 'Virtual webinars, remote workshops, and live AMAs', color: 'slate', isCustom: false },
+  { id: 'cat_offline', name: 'Offline Events', description: 'In-person auditoriums, campus venues, and turf meets', color: 'emerald', isCustom: false }
+];
+
 // LocalStorage Persistence Wrapper
 
 const loadData = <T>(key: string, initialData: T): T => {
@@ -793,6 +831,8 @@ export const db = {
   getCollegePartners: (): CollegePartner[] => loadData('collegePartners', initialCollegePartners),
   getCareerRoles: (): CareerRole[] => loadData('careerRoles', initialCareerRoles),
   getTestimonials: (): Testimonial[] => loadData('testimonials', initialTestimonials),
+  getCategories: (): EventCategory[] => loadData('event_categories', initialCategories),
+  saveCategories: (data: EventCategory[]) => saveData('event_categories', data),
 
   // Session user storage (Mock Auth)
   getCurrentUser: (): User | null => {

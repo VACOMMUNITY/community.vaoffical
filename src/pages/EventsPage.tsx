@@ -90,9 +90,11 @@ export default function EventsPage({ onNavigate, currentUser }: EventsPageProps)
     }
   };
 
-  const categories = ['All', 'Career Prep', 'Public Speaking', 'Networking', 'Leadership'];
+  const dbCategories = db.getCategories().map(c => c.name);
+  const categories = ['All', ...Array.from(new Set([...dbCategories, ...events.map(e => e.category)]))];
 
   const filteredEvents = events.filter(evt => {
+    if (evt.status === 'draft' && currentUser?.role !== 'admin') return false;
     const matchesCat = selectedCategory === 'All' || evt.category === selectedCategory;
     const matchesSearch = evt.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
                           evt.description.toLowerCase().includes(searchQuery.toLowerCase()) ||

@@ -1,4 +1,4 @@
-import { db, type User, type Course, type Event, type ForumThread, type Enrollment, type Registration, type Payment } from './mockDatabase';
+import { db, type User, type Course, type Event, type ForumThread, type Enrollment, type Registration, type Payment, type EventCategory } from './mockDatabase';
 
 // Centralized HTTP API Client for COMMUNITY.VA with smart offline / Vercel deployment resilience
 const API_URL = typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')
@@ -142,7 +142,9 @@ const mapEvent = (evt: any): Event => {
     seatsAvailable: evt.seats_available !== undefined ? evt.seats_available : evt.seatsAvailable,
     feesTier: feesTier || undefined,
     qrCode: evt.qr_code || evt.qrCode || undefined,
-    deadline: evt.deadline || undefined
+    deadline: evt.deadline || undefined,
+    eventType: evt.event_type || evt.eventType || 'offline',
+    status: evt.status || 'published'
   };
 };
 
@@ -165,7 +167,13 @@ const mapRegistration = (r: any): Registration => {
     amountPaid: r.amount_paid !== undefined ? Number(r.amount_paid) : (r.amountPaid || 0),
     paymentScreenshot: r.payment_screenshot || r.paymentScreenshot || '',
     confirmedPayment: r.confirmedPayment !== undefined ? r.confirmedPayment : true,
-    status: r.status || 'pending'
+    status: r.status || 'pending',
+    attended: !!(r.attended || r.is_attended),
+    attendedAt: r.attended_at || r.attendedAt,
+    checkInCode: r.check_in_code || r.checkInCode || (r.id ? r.id.substring(r.id.length - 6).toUpperCase() : 'PASS'),
+    certificateIssued: !!(r.certificate_issued || r.certificateIssued),
+    certificateId: r.certificate_id || r.certificateId,
+    certificateIssuedAt: r.certificate_issued_at || r.certificateIssuedAt
   };
 };
 
@@ -809,7 +817,9 @@ export const api = {
     add: async (event: { 
       title: string; description: string; date: string; time: string; venue: string; 
       fees: number; feesTier?: any; qrCode?: string; deadline?: string; 
-      seatsTotal: number; category: string; banner?: string 
+      seatsTotal: number; category: string; banner?: string;
+      eventType?: 'online' | 'offline' | 'hybrid';
+      status?: 'draft' | 'published' | 'closed';
     }) => {
       try {
         const res = await request('/events/add', {
@@ -833,7 +843,9 @@ export const api = {
           seatsTotal: event.seatsTotal,
           seatsAvailable: event.seatsTotal,
           category: event.category,
-          banner: event.banner || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&q=80&w=800'
+          banner: event.banner || 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&q=80&w=800',
+          eventType: event.eventType || 'offline',
+          status: event.status || 'published'
         };
         db.saveEvents([newEvent, ...events]);
         return newEvent;
@@ -872,6 +884,102 @@ export const api = {
           user: users.find(u => u.id === r.userId)
         }));
       }
+    },
+    toggleAttendance: async (registrationId: string, attended: boolean) => {
+      const regs = db.getRegistrations().map(r => {
+        if (r.id === registrationId) {
+          return {
+            ...r,
+            attended,
+            attendedAt: attended ? new Date().toISOString() : undefined
+          };
+        }
+        return r;
+      });
+      db.saveRegistrations(regs);
+      return { success: true };
+    },
+    checkInByCode: async (codeOrId: string) => {
+      const trimmed = codeOrId.trim().toLowerCase();
+      const regs = db.getRegistrations();
+      const target = regs.find(r => 
+        (r.id && r.id.toLowerCase() === trimmed) ||
+        (r.checkInCode && r.checkInCode.toLowerCase() === trimmed) ||
+        (r.phone && r.phone.replace(/\D/g, '').endsWith(trimmed.replace(/\D/g, '')))
+      );
+      if (!target) {
+        throw new Error('No registration found matching the entered ticket ID / phone.');
+      }
+      const updated = regs.map(r => {
+        if (r.id === target.id) {
+          return {
+            ...r,
+            attended: true,
+            attendedAt: new Date().toISOString()
+          };
+        }
+        return r;
+      });
+      db.saveRegistrations(updated);
+      return target;
+    },
+    issueCertificate: async (registrationId: string) => {
+      const certId = `CVA-CERT-${Math.random().toString(36).substring(2, 8).toUpperCase()}`;
+      const regs = db.getRegistrations().map(r => {
+        if (r.id === registrationId) {
+          return {
+            ...r,
+            certificateIssued: true,
+            certificateId: certId,
+            certificateIssuedAt: new Date().toISOString()
+          };
+        }
+        return r;
+      });
+      db.saveRegistrations(regs);
+      return { certificateId: certId };
+    },
+    issueBatchCertificates: async (eventId: string) => {
+      let count = 0;
+      const regs = db.getRegistrations().map(r => {
+        if (r.eventId === eventId && r.attended && !r.certificateIssued) {
+          count++;
+          return {
+            ...r,
+            certificateIssued: true,
+            certificateId: `CVA-CERT-${Math.random().toString(36).substring(2, 8).toUpperCase()}`,
+            certificateIssuedAt: new Date().toISOString()
+          };
+        }
+        return r;
+      });
+      db.saveRegistrations(regs);
+      return { count };
+    }
+  },
+
+  // --- Event Categories API ---
+  categories: {
+    getAll: async () => {
+      return db.getCategories();
+    },
+    add: async (category: { name: string; description?: string; color?: string; icon?: string }) => {
+      const existing = db.getCategories();
+      const newCat: EventCategory = {
+        id: `cat_${Date.now()}`,
+        name: category.name.trim(),
+        description: category.description || '',
+        icon: category.icon || 'Sparkles',
+        color: category.color || 'blue',
+        isCustom: true
+      };
+      db.saveCategories([...existing, newCat]);
+      return newCat;
+    },
+    delete: async (id: string) => {
+      const existing = db.getCategories().filter(c => c.id !== id);
+      db.saveCategories(existing);
+      return { success: true };
     }
   },
 
