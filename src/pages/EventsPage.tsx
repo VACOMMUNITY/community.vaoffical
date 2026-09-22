@@ -123,15 +123,15 @@ export default function EventsPage({ onNavigate, currentUser }: EventsPageProps)
           </p>
         </div>
 
-        {/* Success Alert Banner if Ticket Generated */}
+        {/* Success Alert Banner after Registration */}
         {ticketDownloaded && (
-          <div className="mb-8 p-4 rounded-2xl bg-gradient-to-r from-green-950/80 to-emerald-900/60 border border-green-500/30 backdrop-blur-md flex items-center justify-between shadow-xl animate-fade-in">
+          <div className="mb-8 p-4 rounded-2xl bg-gradient-to-r from-emerald-950/80 to-blue-950/60 border border-emerald-500/30 backdrop-blur-md flex items-center justify-between shadow-xl animate-fade-in">
             <div className="flex items-center gap-3">
-              <CheckCircle className="h-6 w-6 text-green-400 shrink-0" />
+              <CheckCircle className="h-6 w-6 text-emerald-400 shrink-0" />
               <div>
-                <h4 className="text-sm font-bold text-white">Seat Confirmed & QR Ticket Generated!</h4>
-                <p className="text-xs text-green-200 mt-0.5">
-                  Your event registration is complete. You can download and inspect your QR pass anytime inside your Student Dashboard.
+                <h4 className="text-sm font-bold text-white">Registration Received!</h4>
+                <p className="text-xs text-emerald-200 mt-0.5">
+                  Registration received. We'll verify your payment and confirm your seat through WhatsApp and Email.
                 </p>
               </div>
             </div>
@@ -413,7 +413,7 @@ export default function EventsPage({ onNavigate, currentUser }: EventsPageProps)
           onSuccess={() => {
             setEvents(db.getEvents());
             setTicketDownloaded(selectedRegEvent?.title || 'Workshop Pass');
-            setAdminToast('Registration submitted successfully! Verification pending admin approval.');
+            setAdminToast("Registration received. We'll verify your payment and confirm your seat through WhatsApp and Email.");
             setTimeout(() => setAdminToast(''), 5000);
           }}
           event={selectedRegEvent}

@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useDatabase } from '../hooks/useDatabase';
 import { api } from '../data/api';
 import PaymentModal from '../components/PaymentModal';
+import EventRegistrationModal from '../components/EventRegistrationModal';
 import ThemeToggle from '../components/ThemeToggle';
 import { 
   LayoutDashboard, Calendar, BookOpen, MessageSquare, User as UserIcon, LogOut, Menu, X, 
@@ -27,6 +28,9 @@ export default function ClientDashboard({ onLogout, onNavigate }: ClientDashboar
   const [forumCategory, setForumCategory] = useState('All');
   const [selectedCourse, setSelectedCourse] = useState<any>(null);
   const [selectedEvent, setSelectedEvent] = useState<any>(null);
+
+  // Full-screen Dynamic Event Registration Modal
+  const [selectedRegEvent, setSelectedRegEvent] = useState<any | null>(null);
 
   // Modal Payments State
   const [payModalOpen, setPayModalOpen] = useState(false);
@@ -153,11 +157,13 @@ export default function ClientDashboard({ onLogout, onNavigate }: ClientDashboar
     }
   };
 
-  // Register Event checkout trigger
+  // Register Event trigger (Full-screen dynamic registration)
   const handleRegisterEventTrigger = (evt: any) => {
-    if (evt.seatsAvailable <= 0) return;
-    setPayTarget({ amount: evt.fees, name: evt.title, type: 'event', id: evt.id });
-    setPayModalOpen(true);
+    if (evt.seatsAvailable <= 0) {
+      showToast('Sorry, this workshop is already sold out.');
+      return;
+    }
+    setSelectedRegEvent(evt);
   };
 
   // Purchase Course checkout trigger
@@ -1457,7 +1463,21 @@ export default function ClientDashboard({ onLogout, onNavigate }: ClientDashboar
         </main>
       </div>
 
-      {/* Global Payment Overlay Component */}
+      {/* Full-screen Dynamic Event Registration */}
+      {selectedRegEvent && (
+        <EventRegistrationModal
+          isOpen={!!selectedRegEvent}
+          event={selectedRegEvent}
+          onClose={() => setSelectedRegEvent(null)}
+          onSuccess={() => {
+            setSelectedRegEvent(null);
+            showToast('Registration received! We will verify payment and confirm your seat.');
+            window.dispatchEvent(new Event('db-update'));
+          }}
+        />
+      )}
+
+      {/* Global Payment Overlay Component (Courses) */}
       {payModalOpen && payTarget && (
         <PaymentModal
           isOpen={payModalOpen}

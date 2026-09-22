@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import { db } from '../data/mockDatabase';
 import PaymentModal from '../components/PaymentModal';
+import EventRegistrationModal from '../components/EventRegistrationModal';
 import type { NavPage } from '../components/Navbar';
 
 interface LandingPageProps {
@@ -20,7 +21,10 @@ export default function LandingPage({ onNavigate, currentUser }: LandingPageProp
   const testimonials = db.getTestimonials();
   const partners = db.getCollegePartners();
 
-  // Payment Modal
+  // Full-screen Dynamic Event Registration Modal
+  const [selectedRegEvent, setSelectedRegEvent] = useState<any | null>(null);
+
+  // Payment Modal (Courses)
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<{ name: string; price: number; type: 'course' | 'event'; id: string } | null>(null);
 
@@ -41,18 +45,13 @@ export default function LandingPage({ onNavigate, currentUser }: LandingPageProp
       a: 'Yes. Every course and live workshop issues a cryptographic, QR-enabled certificate that prospective recruiters can verify with a single click on LinkedIn or resumes.'
     },
     {
-      q: 'How does the Razorpay payment and QR ticket flow work?',
-      a: 'Once you complete payment via UPI, card, or net banking, a digital QR pass is generated immediately on your dashboard. Bring this QR ticket to live venues or Zoom admissions for instant check-in.'
+      q: 'How does the UPI QR payment and event registration work?',
+      a: 'Simply click Register on any event, fill in your details, scan the event UPI QR code to complete the transfer, and upload your screenshot. We verify your receipt and confirm your seat through WhatsApp and Email.'
     }
   ];
 
   const handleQuickRegister = (evt: any) => {
-    if (!currentUser) {
-      onNavigate('login');
-      return;
-    }
-    setSelectedItem({ name: evt.title, price: evt.fees, type: 'event', id: evt.id });
-    setPaymentModalOpen(true);
+    setSelectedRegEvent(evt);
   };
 
   const handleQuickEnroll = (crs: any) => {
@@ -690,7 +689,20 @@ export default function LandingPage({ onNavigate, currentUser }: LandingPageProp
         </div>
       </section>
 
-      {/* Payment Modal */}
+      {/* Full-screen Dynamic Event Registration */}
+      {selectedRegEvent && (
+        <EventRegistrationModal
+          isOpen={!!selectedRegEvent}
+          event={selectedRegEvent}
+          onClose={() => setSelectedRegEvent(null)}
+          onSuccess={() => {
+            setSelectedRegEvent(null);
+            window.dispatchEvent(new Event('db-update'));
+          }}
+        />
+      )}
+
+      {/* Payment Modal (Courses) */}
       {selectedItem && (
         <PaymentModal
           isOpen={paymentModalOpen}
