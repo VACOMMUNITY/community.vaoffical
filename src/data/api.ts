@@ -828,7 +828,7 @@ export const api = {
           venue: event.venue,
           fees: event.fees,
           feesTier: event.feesTier || { earlyBird: Math.round(event.fees * 0.75), regular: event.fees, spotEntry: Math.round(event.fees * 1.5) },
-          qrCode: event.qrCode || 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=communityva@razorpay%26pn=COMMUNITY.VA%26cu=INR',
+          qrCode: event.qrCode || '/upi-qr.jpg',
           deadline: event.deadline || '',
           seatsTotal: event.seatsTotal,
           seatsAvailable: event.seatsTotal,

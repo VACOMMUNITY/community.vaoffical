@@ -267,7 +267,7 @@ const initialEvents: Event[] = [
     venue: 'Zoom Online Meeting',
     fees: 199,
     feesTier: { earlyBird: 149, regular: 199, spotEntry: 299 },
-    qrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=communityva@razorpay%26pn=COMMUNITY.VA%26cu=INR',
+    qrCode: '/upi-qr.jpg',
     deadline: '2026-06-24',
     seatsTotal: 50,
     seatsAvailable: 45,
@@ -283,7 +283,7 @@ const initialEvents: Event[] = [
     venue: 'Vibrant Hub, Hyderabad & Hybrid',
     fees: 0,
     feesTier: { earlyBird: 0, regular: 0, spotEntry: 99 },
-    qrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=communityva@razorpay%26pn=COMMUNITY.VA%26cu=INR',
+    qrCode: '/upi-qr.jpg',
     deadline: '2026-07-11',
     seatsTotal: 150,
     seatsAvailable: 135,
@@ -299,7 +299,7 @@ const initialEvents: Event[] = [
     venue: 'Convention Center, Hall B, Hyderabad',
     fees: 299,
     feesTier: { earlyBird: 199, regular: 299, spotEntry: 499 },
-    qrCode: 'https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=communityva@razorpay%26pn=COMMUNITY.VA%26cu=INR',
+    qrCode: '/upi-qr.jpg',
     deadline: '2026-08-01',
     seatsTotal: 30,
     seatsAvailable: 28,
@@ -754,7 +754,15 @@ export const db = {
   getUsers: (): User[] => loadData('users', initialUsers),
   saveUsers: (data: User[]) => saveData('users', data),
 
-  getEvents: (): Event[] => loadData('events', initialEvents),
+  getEvents: (): Event[] => {
+    const list = loadData('events', initialEvents);
+    return list.map(e => ({
+      ...e,
+      qrCode: (!e.qrCode || e.qrCode.includes('api.qrserver.com') || e.qrCode.includes('communityva@razorpay'))
+        ? '/upi-qr.jpg'
+        : e.qrCode
+    }));
+  },
   saveEvents: (data: Event[]) => saveData('events', data),
 
   getRegistrations: (): Registration[] => loadData('registrations', initialRegistrations),

@@ -181,8 +181,10 @@ export default function EventRegistrationModal({
     }
   };
 
-  // Default QR code if none uploaded by admin
-  const qrDisplayUrl = event.qrCode || `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=upi://pay?pa=communityva@razorpay%26pn=COMMUNITY.VA%26am=${finalAmount}%26cu=INR`;
+  // Official QR code from admin upload or official GPay UPI QR
+  const qrDisplayUrl = (event.qrCode && !event.qrCode.includes('api.qrserver.com') && event.qrCode.trim() !== '')
+    ? event.qrCode
+    : '/upi-qr.jpg';
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto bg-slate-950 text-white min-h-screen flex flex-col animate-fade-in">
@@ -591,18 +593,23 @@ export default function EventRegistrationModal({
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-center">
                     {/* UPI QR Code box */}
                     <div className="flex flex-col items-center justify-center p-5 rounded-2xl bg-white/5 border border-white/10 text-center">
-                      <div className="relative p-3 bg-white rounded-2xl shadow-xl">
+                      <div className="relative p-2 bg-white rounded-2xl shadow-xl overflow-hidden max-w-[240px]">
                         <img
                           src={qrDisplayUrl}
-                          alt="Event UPI QR Code"
-                          className="h-48 w-48 object-contain rounded-xl"
+                          alt="Abhi Ram UPI QR Code"
+                          className="h-56 w-56 object-contain rounded-xl"
                         />
                       </div>
-                      <p className="text-xs font-bold text-slate-200 mt-3 flex items-center gap-1.5">
+                      <p className="text-xs font-bold text-slate-100 mt-3 flex items-center gap-1.5">
                         <QrCode className="h-4 w-4 text-blue-400" />
-                        Scan to pay ₹{finalAmount}
+                        <span>Abhi Ram • Google Pay UPI</span>
                       </p>
-                      <p className="text-[10px] text-slate-400 mt-0.5">UPI QR for {event.title}</p>
+                      <div className="mt-1.5 flex items-center justify-center gap-1.5 bg-blue-500/10 border border-blue-500/20 px-3 py-1.5 rounded-xl">
+                        <span className="text-[11px] font-mono font-bold text-blue-300 select-all">
+                          padimarriabhiram@oksbi
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-slate-400 mt-1">Scan to pay ₹{finalAmount} with any UPI app</p>
                     </div>
 
                     {/* Screenshot Upload and Checkbox */}
