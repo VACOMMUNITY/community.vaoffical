@@ -14,36 +14,8 @@ export const setToken = (token: string | null) => {
   }
 };
 
-// Registered accounts store in localStorage to support ANY custom credentials dynamically
-interface StoredAccount {
-  email: string;
-  password: string;
-  userId: string;
-  role: 'admin' | 'user';
-}
+import { supabase, isSupabaseConfigured, isAuthorizedAdmin } from '../lib/supabase';
 
-const getStoredAccounts = (): StoredAccount[] => {
-  const data = localStorage.getItem('cva_stored_accounts');
-  if (!data) {
-    const defaults: StoredAccount[] = [
-      { email: 'sarah@example.com', password: 'admin', userId: 'usr_1', role: 'admin' },
-      { email: 'alex@example.com', password: 'password', userId: 'usr_2', role: 'user' }
-    ];
-    localStorage.setItem('cva_stored_accounts', JSON.stringify(defaults));
-    return defaults;
-  }
-  try {
-    return JSON.parse(data);
-  } catch {
-    return [];
-  }
-};
-
-const saveStoredAccount = (account: StoredAccount) => {
-  const accounts = getStoredAccounts().filter(a => a.email.toLowerCase() !== account.email.toLowerCase());
-  accounts.push(account);
-  localStorage.setItem('cva_stored_accounts', JSON.stringify(accounts));
-};
 
 const request = async (url: string, options: RequestInit = {}) => {
   const token = getToken();
@@ -189,17 +161,62 @@ const mapThread = (t: any): ForumThread => {
 };
 
 export const api = {
-  // --- Auth API ---
+  // --- Auth API (Supabase Production Authentication) ---
   auth: {
-    login: async (email: string, password?: string) => {
+    login: async (email: string, password?: string): Promise<User> => {
       const normalizedEmail = email.trim().toLowerCase();
-      // Direct support for fixed Admin credentials: community.va01@gmail.com
-      if (normalizedEmail === 'community.va01@gmail.com') {
-        if (password && password !== '123456' && password !== 'admin') {
-          throw new Error('Invalid email or password.');
-        }
+      if (!password) {
+        throw new Error('Please enter your password.');
       }
 
+      if (isSupabaseConfigured()) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: normalizedEmail,
+          password
+        });
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        const sbUser = data.user;
+        const isAdmin = isAuthorizedAdmin(sbUser.email, sbUser.app_metadata?.role);
+        const users = db.getUsers();
+        let userObj = users.find(u => u.email.toLowerCase() === normalizedEmail);
+
+        if (!userObj) {
+          userObj = {
+            id: sbUser.id,
+            name: sbUser.user_metadata?.full_name || normalizedEmail.split('@')[0],
+            email: normalizedEmail,
+            phone: sbUser.user_metadata?.phone || '+91 7416201359',
+            role: isAdmin ? 'admin' : 'user',
+            profilePhoto: isAdmin 
+              ? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=120'
+              : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120',
+            bio: 'Member of COMMUNITY.VA learning cohort.',
+            registeredAt: sbUser.created_at || new Date().toISOString(),
+            isBlocked: false,
+            wishlist: [],
+            couponsUsed: []
+          };
+          db.saveUsers([...users, userObj]);
+        } else {
+          if (userObj.isBlocked) {
+            await supabase.auth.signOut();
+            throw new Error('This account has been deactivated. Please contact support.');
+          }
+          if (isAdmin && userObj.role !== 'admin') {
+            userObj.role = 'admin';
+            db.saveUsers(users.map(u => u.id === userObj!.id ? userObj! : u));
+          }
+        }
+
+        setToken(data.session?.access_token || 'sb_active_session');
+        db.setCurrentUser(userObj);
+        return userObj;
+      }
+
+      // If remote backend server is running, use it
       try {
         const res = await request('/auth/login', {
           method: 'POST',
@@ -210,125 +227,108 @@ export const api = {
         db.setCurrentUser(mapped);
         return mapped;
       } catch (err: any) {
-        // If it was an invalid password error, bubble it up
-        if (err.message === 'Invalid email or password.') {
-          throw err;
-        }
+        throw new Error(err.message || 'Authentication failed. Please verify your credentials or check Supabase configuration.');
+      }
+    },
 
-        // Direct fixed admin fallback
-        if (normalizedEmail === 'community.va01@gmail.com') {
-          if (password && password !== '123456' && password !== 'admin') {
-            throw new Error('Invalid email or password.');
-          }
-          const users = db.getUsers();
-          let adminUser = users.find(u => u.email.toLowerCase() === 'community.va01@gmail.com');
-          if (!adminUser) {
-            adminUser = {
-              id: 'usr_admin',
-              name: 'COMMUNITY.VA Admin',
-              email: 'community.va01@gmail.com',
-              phone: '+91 7416201359',
-              role: 'admin',
-              profilePhoto: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=120',
-              bio: 'Administrator and Director at COMMUNITY.VA.',
-              registeredAt: '2026-01-01T00:00:00Z',
-              isBlocked: false,
-              wishlist: [],
-              couponsUsed: []
-            };
-            db.saveUsers([adminUser, ...users]);
-          } else {
-            adminUser.role = 'admin';
-            db.saveUsers(users.map(u => u.id === adminUser!.id ? adminUser! : u));
-          }
-          setToken('cva_token_usr_admin');
-          db.setCurrentUser(adminUser);
-          return adminUser;
-        }
+    adminLogin: async (email: string, password?: string): Promise<User> => {
+      const normalizedEmail = email.trim().toLowerCase();
+      if (!isAuthorizedAdmin(normalizedEmail)) {
+        throw new Error('Access Denied: Only approved administrator email accounts can access the Admin Dashboard.');
+      }
+      if (!password) {
+        throw new Error('Please enter your administrator password.');
+      }
 
-        const accounts = getStoredAccounts();
-        const existing = accounts.find(a => a.email.toLowerCase() === normalizedEmail);
-
-        if (existing) {
-          if (password && existing.password && existing.password !== password) {
-            throw new Error('Incorrect password. Please try again.');
-          }
-          const users = db.getUsers();
-          let userObj = users.find(u => u.id === existing.userId || u.email.toLowerCase() === normalizedEmail);
-          if (!userObj) {
-            userObj = {
-              id: existing.userId,
-              name: normalizedEmail.split('@')[0].replace(/[._]/g, ' '),
-              email: normalizedEmail,
-              phone: '+91 98765 43210',
-              role: existing.role,
-              profilePhoto: existing.role === 'admin' 
-                ? 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=120'
-                : 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120',
-              bio: 'Active member of COMMUNITY.VA learning cohort.',
-              registeredAt: new Date().toISOString(),
-              isBlocked: false,
-              wishlist: [],
-              couponsUsed: []
-            };
-            db.saveUsers([...users, userObj]);
-          }
-          setToken(`cva_token_${userObj.id}`);
-          db.setCurrentUser(userObj);
-          return userObj;
-        }
-
-        // Allow ANY valid email/password login dynamically by auto-onboarding them
-        const isAdmin = normalizedEmail.includes('admin');
-        const newUserId = `usr_${Date.now()}`;
-        const newUser: User = {
-          id: newUserId,
-          name: normalizedEmail.split('@')[0].replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()),
+      if (isSupabaseConfigured()) {
+        const { data, error } = await supabase.auth.signInWithPassword({
           email: normalizedEmail,
-          phone: '+91 98765 43210',
-          role: isAdmin ? 'admin' : 'user',
-          profilePhoto: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120',
-          bio: 'Passionate learner honing non-technical skills at COMMUNITY.VA.',
-          registeredAt: new Date().toISOString(),
-          isBlocked: false,
-          wishlist: [],
-          couponsUsed: []
-        };
-
-        saveStoredAccount({
-          email: normalizedEmail,
-          password: password || 'password',
-          userId: newUserId,
-          role: newUser.role
+          password
         });
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        const sbUser = data.user;
+        if (!isAuthorizedAdmin(sbUser.email, sbUser.app_metadata?.role)) {
+          await supabase.auth.signOut();
+          throw new Error('Access Denied: Your account does not possess administrator privileges.');
+        }
 
         const users = db.getUsers();
-        db.saveUsers([...users, newUser]);
-        setToken(`cva_token_${newUserId}`);
-        db.setCurrentUser(newUser);
-        return newUser;
+        let adminObj = users.find(u => u.email.toLowerCase() === normalizedEmail);
+        if (!adminObj) {
+          adminObj = {
+            id: sbUser.id,
+            name: sbUser.user_metadata?.full_name || 'COMMUNITY.VA Administrator',
+            email: normalizedEmail,
+            phone: sbUser.user_metadata?.phone || '+91 7416201359',
+            role: 'admin',
+            profilePhoto: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=120',
+            bio: 'Official Administrator and Director at COMMUNITY.VA.',
+            registeredAt: sbUser.created_at || new Date().toISOString(),
+            isBlocked: false,
+            wishlist: [],
+            couponsUsed: []
+          };
+          db.saveUsers([...users, adminObj]);
+        } else {
+          adminObj.role = 'admin';
+          db.saveUsers(users.map(u => u.id === adminObj!.id ? adminObj! : u));
+        }
+
+        setToken(data.session?.access_token || 'sb_admin_token');
+        db.setCurrentUser(adminObj);
+        return adminObj;
+      }
+
+      // Check backend API fallback
+      try {
+        const res = await request('/auth/login', {
+          method: 'POST',
+          body: JSON.stringify({ email: normalizedEmail, password })
+        });
+        const mapped = mapUser(res.user);
+        if (mapped.role !== 'admin' && !isAuthorizedAdmin(mapped.email)) {
+          throw new Error('Access Denied: Account is not an administrator.');
+        }
+        setToken(res.token);
+        db.setCurrentUser(mapped);
+        return mapped;
+      } catch (err: any) {
+        throw new Error(err.message || 'Admin authentication failed.');
       }
     },
 
     register: async (name: string, email: string, phone: string, password?: string) => {
       const normalizedEmail = email.trim().toLowerCase();
-      try {
-        const res = await request('/auth/register', {
-          method: 'POST',
-          body: JSON.stringify({ name, email: normalizedEmail, phone, password })
+      if (!password || password.length < 6) {
+        throw new Error('Password must be at least 6 characters.');
+      }
+
+      if (isSupabaseConfigured()) {
+        const { data, error } = await supabase.auth.signUp({
+          email: normalizedEmail,
+          password,
+          options: {
+            data: {
+              full_name: name.trim(),
+              phone: phone.trim()
+            }
+          }
         });
-        setToken(res.token);
-        const mapped = mapUser(res.user);
-        db.setCurrentUser(mapped);
-        return mapped;
-      } catch {
-        const newUserId = `usr_${Date.now()}`;
-        const isAdmin = normalizedEmail.includes('admin');
+
+        if (error) {
+          throw new Error(error.message);
+        }
+
+        const sbUser = data.user;
+        const isAdmin = isAuthorizedAdmin(normalizedEmail);
         const newUser: User = {
-          id: newUserId,
+          id: sbUser?.id || `usr_${Date.now()}`,
           name: name.trim() || normalizedEmail.split('@')[0],
           email: normalizedEmail,
-          phone: phone.trim() || '+91 98765 43210',
+          phone: phone.trim(),
           role: isAdmin ? 'admin' : 'user',
           profilePhoto: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120',
           bio: 'New student enrolled in COMMUNITY.VA career accelerator programs.',
@@ -338,65 +338,112 @@ export const api = {
           couponsUsed: []
         };
 
-        saveStoredAccount({
-          email: normalizedEmail,
-          password: password || 'password',
-          userId: newUserId,
-          role: newUser.role
-        });
-
         const users = db.getUsers().filter(u => u.email.toLowerCase() !== normalizedEmail);
         db.saveUsers([...users, newUser]);
-        setToken(`cva_token_${newUserId}`);
-        db.setCurrentUser(newUser);
-        return newUser;
-      }
-    },
 
-    googleLogin: async (email: string, name: string) => {
-      const normalizedEmail = email.trim().toLowerCase();
-      try {
-        const res = await request('/auth/google', {
-          method: 'POST',
-          body: JSON.stringify({ email: normalizedEmail, name })
-        });
-        setToken(res.token);
-        const mapped = mapUser(res.user);
-        db.setCurrentUser(mapped);
-        return mapped;
-      } catch {
-        const users = db.getUsers();
-        let user = users.find(u => u.email.toLowerCase() === normalizedEmail);
-        if (!user) {
-          const newUserId = `usr_${Date.now()}`;
-          user = {
-            id: newUserId,
-            name: name || 'Google Student',
-            email: normalizedEmail,
-            phone: '+91 98765 43210',
-            role: 'user',
-            profilePhoto: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=120',
-            bio: 'Authenticated via Google Single Sign-On.',
-            registeredAt: new Date().toISOString(),
-            isBlocked: false,
-            wishlist: [],
-            couponsUsed: []
-          };
-          saveStoredAccount({
-            email: normalizedEmail,
-            password: 'google_oauth_pass',
-            userId: newUserId,
-            role: 'user'
-          });
-          db.saveUsers([...users, user]);
+        // If session was granted immediately (email confirmation disabled in Supabase project)
+        if (data.session) {
+          setToken(data.session.access_token);
+          db.setCurrentUser(newUser);
         }
-        setToken(`cva_token_${user.id}`);
-        db.setCurrentUser(user);
-        return user;
+
+        return {
+          user: newUser,
+          session: data.session,
+          requiresEmailVerification: !data.session
+        };
+      }
+
+      // Backend API fallback
+      const res = await request('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({ name, email: normalizedEmail, phone, password })
+      });
+      setToken(res.token);
+      const mapped = mapUser(res.user);
+      db.setCurrentUser(mapped);
+      return { user: mapped, session: res.token, requiresEmailVerification: false };
+    },
+
+    googleLogin: async () => {
+      if (isSupabaseConfigured()) {
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: window.location.origin
+          }
+        });
+        if (error) {
+          throw new Error(error.message);
+        }
+        return data;
+      }
+      throw new Error('Google OAuth requires Supabase project configuration in .env (VITE_SUPABASE_URL & VITE_SUPABASE_ANON_KEY).');
+    },
+
+    forgotPassword: async (email: string) => {
+      const normalizedEmail = email.trim().toLowerCase();
+      if (isSupabaseConfigured()) {
+        const { data, error } = await supabase.auth.resetPasswordForEmail(normalizedEmail, {
+          redirectTo: `${window.location.origin}/`
+        });
+        if (error) {
+          throw new Error(error.message);
+        }
+        return data;
+      }
+
+      try {
+        return await request('/auth/forgot-password', {
+          method: 'POST',
+          body: JSON.stringify({ email: normalizedEmail })
+        });
+      } catch {
+        return { success: true, message: 'Password reset link sent.' };
       }
     },
 
-    getProfile: async () => {
+    logout: async () => {
+      if (isSupabaseConfigured()) {
+        try {
+          await supabase.auth.signOut();
+        } catch {}
+      }
+      setToken(null);
+      db.setCurrentUser(null);
+    },
+
+    getProfile: async (): Promise<User> => {
+      if (isSupabaseConfigured()) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          const sbUser = session.user;
+          const isAdmin = isAuthorizedAdmin(sbUser.email, sbUser.app_metadata?.role);
+          const users = db.getUsers();
+          let userObj = users.find(u => u.email.toLowerCase() === sbUser.email?.toLowerCase());
+
+          if (!userObj) {
+            userObj = {
+              id: sbUser.id,
+              name: sbUser.user_metadata?.full_name || sbUser.email?.split('@')[0] || 'Student',
+              email: sbUser.email || '',
+              phone: sbUser.user_metadata?.phone || '+91 7416201359',
+              role: isAdmin ? 'admin' : 'user',
+              profilePhoto: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&q=80&w=120',
+              bio: 'Active member of COMMUNITY.VA.',
+              registeredAt: sbUser.created_at || new Date().toISOString(),
+              isBlocked: false,
+              wishlist: [],
+              couponsUsed: []
+            };
+            db.saveUsers([...users, userObj]);
+          }
+
+          db.setCurrentUser(userObj);
+          return userObj;
+        }
+      }
+
       try {
         const user = await request('/auth/profile');
         const mapped = mapUser(user);
@@ -405,7 +452,7 @@ export const api = {
       } catch {
         const local = db.getCurrentUser();
         if (local) return local;
-        throw new Error('No local profile available.');
+        throw new Error('No active user session found.');
       }
     },
 
@@ -435,11 +482,6 @@ export const api = {
         }
         throw new Error('Profile update failed.');
       }
-    },
-
-    logout: () => {
-      setToken(null);
-      db.setCurrentUser(null);
     }
   },
 

@@ -235,39 +235,13 @@ export interface Testimonial {
 const initialUsers: User[] = [
   {
     id: 'usr_admin',
-    name: 'COMMUNITY.VA Admin',
+    name: 'COMMUNITY.VA Administrator',
     email: 'community.va01@gmail.com',
     phone: '+91 7416201359',
     role: 'admin',
     profilePhoto: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=120',
-    bio: 'Administrator and Director at COMMUNITY.VA.',
+    bio: 'Official Administrator and Program Director at COMMUNITY.VA.',
     registeredAt: '2026-01-01T00:00:00Z',
-    isBlocked: false,
-    wishlist: [],
-    couponsUsed: []
-  },
-  {
-    id: 'usr_1',
-    name: 'Sarah Connor',
-    email: 'sarah@example.com',
-    phone: '+91 7416201359',
-    role: 'admin',
-    profilePhoto: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&q=80&w=120',
-    bio: 'Founder and program manager at COMMUNITY.VA. Passionate about empowering students.',
-    registeredAt: '2026-01-15T09:30:00Z',
-    isBlocked: false,
-    wishlist: [],
-    couponsUsed: []
-  },
-  {
-    id: 'usr_2',
-    name: 'Alex Mercer',
-    email: 'alex@example.com',
-    phone: '+1 555-0144',
-    role: 'user',
-    profilePhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&q=80&w=120',
-    bio: 'Computer Science undergraduate looking to improve presentation and communication skills.',
-    registeredAt: '2026-03-20T14:15:00Z',
     isBlocked: false,
     wishlist: [],
     couponsUsed: []

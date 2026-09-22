@@ -7,7 +7,7 @@ import {
 import type { User } from '../data/mockDatabase';
 import ThemeToggle from './ThemeToggle';
 
-export type NavPage = 'landing' | 'events' | 'courses' | 'community' | 'for-colleges' | 'about' | 'careers' | 'contact' | 'login' | 'register' | 'client' | 'admin';
+export type NavPage = 'landing' | 'events' | 'courses' | 'community' | 'for-colleges' | 'about' | 'careers' | 'contact' | 'login' | 'register' | 'client' | 'admin' | 'admin-login';
 
 interface NavbarProps {
   currentPage: NavPage;

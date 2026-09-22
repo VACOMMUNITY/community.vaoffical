@@ -243,10 +243,17 @@ export default function Footer({ onNavigate }: FooterProps) {
 
         {/* Bottom Bar: Copyright & Socials */}
         <div className="mt-12 pt-8 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
-          <div className="flex items-center gap-1">
+          <div className="flex flex-wrap items-center gap-1 text-slate-500">
             <span>© {new Date().getFullYear()} COMMUNITY.VA Technologies Pvt. Ltd. Crafted with</span>
             <Heart className="h-3.5 w-3.5 text-red-500 fill-current inline" />
             <span>for the next generation of leaders.</span>
+            <span className="mx-1 text-slate-600">•</span>
+            <button 
+              onClick={() => { onNavigate('admin-login'); window.scrollTo({ top: 0, behavior: 'smooth' }); }}
+              className="text-slate-500 hover:text-indigo-400 transition cursor-pointer"
+            >
+              Admin Portal
+            </button>
           </div>
 
           <div className="flex items-center gap-4 text-slate-400">

@@ -1,16 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../data/api';
 import type { User } from '../data/mockDatabase';
-import { ArrowLeft, Mail, Lock, User as UserIcon, Phone, ShieldAlert, Check, X, ArrowRight, Clock } from 'lucide-react';
+import { ArrowLeft, Mail, Lock, User as UserIcon, Phone, ShieldAlert, Check, X, ArrowRight, CheckCircle2, Shield } from 'lucide-react';
 
 interface AuthPagesProps {
   initialMode: 'login' | 'register' | 'forgot' | 'verify';
-  onNavigate: (view: 'landing' | 'login' | 'register' | 'client' | 'admin') => void;
+  onNavigate: (view: any) => void;
   onLoginSuccess: (user: User) => void;
 }
 
 export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: AuthPagesProps) {
-  const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'verify' | 'pending_confirmation'>(initialMode);
+  const [mode, setMode] = useState<'login' | 'register' | 'forgot' | 'email_verification_sent'>(
+    initialMode === 'verify' ? 'email_verification_sent' : initialMode
+  );
   
   // Input fields
   const [email, setEmail] = useState('');
@@ -18,7 +20,7 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
-  const [submittedReg, setSubmittedReg] = useState<{ name: string; email: string; phone: string } | null>(null);
+  const [registeredEmail, setRegisteredEmail] = useState('');
 
   // Error/Status messages
   const [errorMsg, setErrorMsg] = useState('');
@@ -49,7 +51,7 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
       showNotification(`Welcome back, ${user.name}! Logging you in...`, 'success');
       setTimeout(() => {
         onLoginSuccess(user);
-      }, 600);
+      }, 500);
     } catch (err: any) {
       const msg = err.message || 'Invalid email or password.';
       setErrorMsg(msg);
@@ -64,10 +66,17 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
     setErrorMsg('');
     setLoading(true);
     try {
-      await api.auth.register(name, email, phone, password);
-      setSubmittedReg({ name, email, phone });
-      setMode('pending_confirmation');
-      showNotification('Registration submitted! Queued for confirmation by Admin.', 'info');
+      const res = await api.auth.register(name, email, phone, password);
+      setRegisteredEmail(email);
+      if (res.requiresEmailVerification) {
+        setMode('email_verification_sent');
+        showNotification('Verification email sent! Please check your inbox.', 'info');
+      } else if (res.user) {
+        showNotification(`Account created! Welcome, ${res.user.name}.`, 'success');
+        setTimeout(() => {
+          onLoginSuccess(res.user);
+        }, 500);
+      }
     } catch (err: any) {
       const msg = err.message || 'Registration failed.';
       setErrorMsg(msg);
@@ -77,30 +86,37 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
     }
   };
 
-  const handleForgotPassword = (e: React.FormEvent) => {
+  const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
-    setStatusMsg('A password recovery email has been sent to your registered address.');
-    showNotification('Password reset link sent to your email.', 'success');
-    setTimeout(() => {
-      setStatusMsg('');
-      setMode('login');
-    }, 3000);
-  };
-
-  const handleSocialLogin = async () => {
     setErrorMsg('');
+    if (!email) {
+      setErrorMsg('Please enter your email address.');
+      return;
+    }
     setLoading(true);
     try {
-      const user = await api.auth.googleLogin('google.student@example.com', 'Google Student');
-      showNotification(`Google account authenticated! Welcome, ${user.name}.`, 'success');
-      setTimeout(() => {
-        onLoginSuccess(user);
-      }, 600);
+      await api.auth.forgotPassword(email);
+      setStatusMsg('A password recovery email has been sent to your registered address.');
+      showNotification('Password reset link sent to your email.', 'success');
     } catch (err: any) {
-      const msg = err.message || 'Google sign-in failed.';
+      const msg = err.message || 'Failed to send password reset email.';
       setErrorMsg(msg);
       showNotification(msg, 'error');
     } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGoogleLogin = async () => {
+    setErrorMsg('');
+    setLoading(true);
+    try {
+      await api.auth.googleLogin();
+      // Google OAuth will redirect to Google login window
+    } catch (err: any) {
+      const msg = err.message || 'Google sign-in could not be initiated.';
+      setErrorMsg(msg);
+      showNotification(msg, 'error');
       setLoading(false);
     }
   };
@@ -130,9 +146,10 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
             COMMUNITY<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-purple-400">.VA</span>
           </h2>
           <p className="text-xs text-slate-400 mt-1">
-            {mode === 'login' && 'Sign in to access your courses, events, and certificates.'}
-            {mode === 'register' && 'Create your student account with any custom credentials.'}
-            {mode === 'forgot' && 'Reset your password to regain account access.'}
+            {mode === 'login' && 'Sign in to access your registered events, courses, and certificates.'}
+            {mode === 'register' && 'Create your official student account to register for events.'}
+            {mode === 'forgot' && 'Enter your email to receive a password recovery link.'}
+            {mode === 'email_verification_sent' && 'Verify your email address to activate your account.'}
           </p>
         </div>
 
@@ -153,7 +170,6 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
         {/* LOGIN FORM */}
         {mode === 'login' && (
           <form onSubmit={handleLogin} className="space-y-4">
-
             <div>
               <label className="block text-xs font-semibold text-slate-300 mb-1.5">Email Address</label>
               <div className="relative">
@@ -173,7 +189,7 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
                 <label className="block text-xs font-semibold text-slate-300">Password</label>
                 <button 
                   type="button" 
-                  onClick={() => setMode('forgot')}
+                  onClick={() => { setErrorMsg(''); setStatusMsg(''); setMode('forgot'); }}
                   className="text-[10px] font-bold text-blue-400 hover:text-blue-300 transition cursor-pointer"
                 >
                   Forgot Password?
@@ -213,7 +229,7 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
                 <input
                   type="text"
                   required
-                  placeholder="Alex Mercer"
+                  placeholder="Your Full Name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
@@ -241,7 +257,7 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
                 <input
                   type="tel"
                   required
-                  placeholder="+91 74162 01359"
+                  placeholder="+91 98765 43210"
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
@@ -255,7 +271,8 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
                 <input
                   type="password"
                   required
-                  placeholder="••••••••"
+                  minLength={6}
+                  placeholder="Minimum 6 characters"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-4 text-xs sm:text-sm text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 transition"
@@ -267,11 +284,11 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
               disabled={loading}
               className="w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-blue-600 via-indigo-600 to-purple-600 hover:from-blue-500 hover:via-indigo-500 hover:to-purple-500 py-3 text-center text-xs sm:text-sm font-extrabold text-white shadow-lg shadow-indigo-500/25 transition duration-200 cursor-pointer disabled:opacity-50"
             >
-              <span>{loading ? 'Submitting...' : 'Register Account'}</span>
+              <span>{loading ? 'Creating Account...' : 'Create Account'}</span>
               <ArrowRight className="h-4 w-4" />
             </button>
-            <p className="text-[11px] text-center text-slate-500 mt-1">
-              After registration, your profile is routed to the admin for verification.
+            <p className="text-[11px] text-center text-slate-400 mt-1">
+              Passwords are encrypted and securely hashed. A verification link will be sent to your email.
             </p>
           </form>
         )}
@@ -298,13 +315,14 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
             </div>
             <button
               type="submit"
-              className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 py-3 text-center text-xs sm:text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition duration-200 cursor-pointer"
+              disabled={loading}
+              className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 py-3 text-center text-xs sm:text-sm font-bold text-white shadow-lg shadow-indigo-500/20 transition duration-200 cursor-pointer disabled:opacity-50"
             >
-              Send Reset Link
+              {loading ? 'Sending...' : 'Send Reset Link'}
             </button>
             <button 
               type="button" 
-              onClick={() => setMode('login')}
+              onClick={() => { setErrorMsg(''); setStatusMsg(''); setMode('login'); }}
               className="w-full text-center text-xs font-bold text-slate-400 hover:text-white transition mt-2 cursor-pointer"
             >
               Back to Sign In
@@ -312,73 +330,43 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
           </form>
         )}
 
-        {/* PENDING CONFIRMATION BY ADMIN SCREEN */}
-        {mode === 'pending_confirmation' && (
+        {/* EMAIL VERIFICATION SENT SCREEN */}
+        {mode === 'email_verification_sent' && (
           <div className="space-y-5 animate-fade-in text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 shadow-lg shadow-amber-500/10">
-              <Clock className="h-7 w-7 animate-pulse" />
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500/20 text-blue-400 border border-blue-500/30 shadow-lg shadow-blue-500/10">
+              <Mail className="h-7 w-7 animate-bounce" />
             </div>
 
             <div>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-3 py-1 text-xs font-bold text-amber-300 mb-2">
-                ⏳ Submitted for Verification
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/15 border border-blue-500/30 px-3 py-1 text-xs font-bold text-blue-300 mb-2">
+                <CheckCircle2 className="h-3.5 w-3.5 text-blue-400" />
+                Verification Email Dispatched
               </span>
-              <h3 className="text-xl font-black text-white">Registration Submitted!</h3>
-              <p className="text-xs text-slate-300 mt-1">
-                Your form has been routed to the COMMUNITY.VA Administrator to confirm and activate your account.
+              <h3 className="text-xl font-black text-white">Check Your Inbox</h3>
+              <p className="text-xs text-slate-300 mt-2 leading-relaxed">
+                We've sent an activation link to <span className="font-bold text-white underline">{registeredEmail || email}</span>. 
+                Please click the link in your email to verify and activate your account.
               </p>
             </div>
 
-            {submittedReg && (
-              <div className="rounded-2xl border border-white/10 bg-white/5 p-4 text-left space-y-2 text-xs">
-                <div className="flex justify-between border-b border-white/10 pb-1.5">
-                  <span className="text-slate-400">Student Name:</span>
-                  <span className="font-bold text-white">{submittedReg.name}</span>
-                </div>
-                <div className="flex justify-between border-b border-white/10 pb-1.5">
-                  <span className="text-slate-400">Email:</span>
-                  <span className="font-medium text-slate-200">{submittedReg.email}</span>
-                </div>
-                <div className="flex justify-between border-b border-white/10 pb-1.5">
-                  <span className="text-slate-400">Phone:</span>
-                  <span className="font-medium text-slate-200">{submittedReg.phone}</span>
-                </div>
-                <div className="flex justify-between pt-1">
-                  <span className="text-slate-400">Status:</span>
-                  <span className="font-extrabold text-amber-400">Pending Confirmation by Admin</span>
-                </div>
-              </div>
-            )}
-
-            <div className="p-3.5 rounded-2xl bg-indigo-950/40 border border-indigo-500/20 text-xs text-slate-300 text-left space-y-1">
-              <p className="font-bold text-white flex items-center gap-1.5">
-                <span>⚡ Need Fast Confirmation?</span>
-              </p>
-              <p className="text-[11px] text-slate-400">
-                Contact the Admin on WhatsApp for instant activation or login directly with official Admin credentials.
-              </p>
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 text-xs text-slate-300 text-left space-y-1.5">
+              <p className="font-bold text-white">Didn't receive the email?</p>
+              <ul className="list-disc list-inside space-y-1 text-slate-400 text-[11px]">
+                <li>Check your Spam or Junk folder.</li>
+                <li>Ensure your email address was entered correctly.</li>
+                <li>Allow 1-2 minutes for the activation email to arrive.</li>
+              </ul>
             </div>
 
             <div className="space-y-2.5 pt-1">
-              <a
-                href={`https://wa.me/917416201359?text=${encodeURIComponent(
-                  `Hi Admin, I have submitted my registration on COMMUNITY.VA with Name: ${submittedReg?.name || 'Student'} and Email: ${submittedReg?.email || ''}. Please confirm my account.`
-                )}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-2 rounded-xl bg-[#25D366] hover:bg-[#20ba59] py-3 text-center text-xs font-bold text-white shadow-lg shadow-green-950/40 transition cursor-pointer"
-              >
-                <span>Confirm on WhatsApp (+91 7416201359)</span>
-                <ArrowRight className="h-4 w-4" />
-              </a>
-
               <button
                 type="button"
                 onClick={() => {
-                  if (submittedReg?.email) setEmail(submittedReg.email);
+                  setErrorMsg('');
+                  setStatusMsg('');
                   setMode('login');
                 }}
-                className="w-full rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 py-2.5 text-center text-xs font-bold text-slate-300 hover:text-white transition cursor-pointer"
+                className="w-full rounded-xl bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 py-3 text-center text-xs font-bold text-white shadow-lg shadow-indigo-500/20 transition cursor-pointer"
               >
                 Proceed to Sign In
               </button>
@@ -386,8 +374,8 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
           </div>
         )}
 
-        {/* Social Google Login & Mode Toggle (Only when not in pending_confirmation) */}
-        {mode !== 'pending_confirmation' && (
+        {/* Real Google OAuth & Mode Toggle (Only when not on verification screen) */}
+        {mode !== 'email_verification_sent' && (
           <>
             <div className="relative my-6 text-center">
               <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-white/10"></div></div>
@@ -396,8 +384,9 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
 
             <button
               type="button"
-              onClick={handleSocialLogin}
-              className="w-full flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 py-2.5 text-center text-xs font-bold text-white transition hover:scale-101 cursor-pointer"
+              disabled={loading}
+              onClick={handleGoogleLogin}
+              className="w-full flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 py-2.5 text-center text-xs font-bold text-white transition hover:scale-101 cursor-pointer disabled:opacity-50"
             >
               <svg className="h-4 w-4 mr-1" viewBox="0 0 24 24">
                 <path fill="#EA4335" d="M12 5.04c1.62 0 3.08.56 4.22 1.64l3.15-3.15C17.45 1.74 14.96 1 12 1 7.35 1 3.39 3.65 1.5 7.5l3.85 3C6.26 7.42 8.9 5.04 12 5.04z" />
@@ -412,18 +401,36 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
               {mode === 'login' ? (
                 <>
                   Don't have an account?{' '}
-                  <button onClick={() => setMode('register')} className="font-bold text-blue-400 hover:text-blue-300 transition cursor-pointer">
+                  <button 
+                    onClick={() => { setErrorMsg(''); setStatusMsg(''); setMode('register'); }} 
+                    className="font-bold text-blue-400 hover:text-blue-300 transition cursor-pointer"
+                  >
                     Create Account
                   </button>
                 </>
               ) : (
                 <>
                   Already have an account?{' '}
-                  <button onClick={() => setMode('login')} className="font-bold text-blue-400 hover:text-blue-300 transition cursor-pointer">
+                  <button 
+                    onClick={() => { setErrorMsg(''); setStatusMsg(''); setMode('login'); }} 
+                    className="font-bold text-blue-400 hover:text-blue-300 transition cursor-pointer"
+                  >
                     Sign In
                   </button>
                 </>
               )}
+            </div>
+
+            {/* Link to Dedicated Admin Login */}
+            <div className="mt-6 pt-4 border-t border-white/10 text-center">
+              <button
+                type="button"
+                onClick={() => onNavigate('admin-login')}
+                className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500 hover:text-slate-300 transition cursor-pointer"
+              >
+                <Shield className="h-3 w-3 text-indigo-400" />
+                <span>Authorized Administrator Portal</span>
+              </button>
             </div>
           </>
         )}

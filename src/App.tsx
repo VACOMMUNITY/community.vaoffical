@@ -14,9 +14,11 @@ const AboutPage = lazy(() => import('./pages/AboutPage'));
 const CareersPage = lazy(() => import('./pages/CareersPage'));
 const ContactPage = lazy(() => import('./pages/ContactPage'));
 const AuthPages = lazy(() => import('./pages/AuthPages'));
+const AdminLoginPage = lazy(() => import('./pages/AdminLoginPage'));
 const ClientDashboard = lazy(() => import('./pages/ClientDashboard'));
 const AdminDashboard = lazy(() => import('./pages/AdminDashboard'));
 const AIChatAssistant = lazy(() => import('./components/AIChatAssistant'));
+import { supabase, isSupabaseConfigured } from './lib/supabase';
 
 function PageFallback() {
   return (
@@ -31,33 +33,46 @@ export default function App() {
   const [view, setView] = useState<NavPage>('landing');
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  // Restore session on mount
+  // Restore session on mount & subscribe to auth state changes
   useEffect(() => {
-    const token = localStorage.getItem('cva_token');
-    if (token) {
-      api.auth.getProfile()
-        .then(user => {
-          setCurrentUser(user);
-        })
-        .catch(() => {
+    api.auth.getProfile()
+      .then(user => {
+        setCurrentUser(user);
+      })
+      .catch(() => {
+        const token = localStorage.getItem('cva_token');
+        if (token) {
           api.auth.logout();
+        }
+        setCurrentUser(null);
+      });
+
+    let unsubscribeSupabase = () => {};
+    if (isSupabaseConfigured()) {
+      const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+        if (session?.user) {
+          api.auth.getProfile().then(user => setCurrentUser(user)).catch(() => {});
+        } else {
           setCurrentUser(null);
-        });
+        }
+      });
+      unsubscribeSupabase = () => subscription.unsubscribe();
     }
 
     // Sync state whenever profile is updated
     const handleProfileSync = () => {
-      const token = localStorage.getItem('cva_token');
-      if (token) {
-        api.auth.getProfile()
-          .then(user => {
-            setCurrentUser(user);
-          })
-          .catch(() => {});
-      }
+      api.auth.getProfile()
+        .then(user => {
+          setCurrentUser(user);
+        })
+        .catch(() => {});
     };
     window.addEventListener('profile-update', handleProfileSync);
-    return () => window.removeEventListener('profile-update', handleProfileSync);
+
+    return () => {
+      unsubscribeSupabase();
+      window.removeEventListener('profile-update', handleProfileSync);
+    };
   }, []);
 
   const handleLoginSuccess = (user: User) => {
@@ -81,7 +96,7 @@ export default function App() {
   };
 
   const isDashboardView = view === 'client' || view === 'admin';
-  const isAuthView = view === 'login' || view === 'register';
+  const isAuthView = view === 'login' || view === 'register' || view === 'admin-login';
 
   return (
     <div className="min-h-screen flex flex-col bg-[#0B0F19] text-slate-100 transition-colors duration-300 selection:bg-blue-600 selection:text-white">
@@ -168,18 +183,40 @@ export default function App() {
             />
           )}
 
-          {view === 'client' && (
-            <ClientDashboard 
+          {view === 'admin-login' && (
+            <AdminLoginPage 
               onNavigate={navigateTo} 
-              onLogout={handleLogout} 
+              onLoginSuccess={handleLoginSuccess} 
             />
           )}
 
+          {view === 'client' && (
+            currentUser ? (
+              <ClientDashboard 
+                onNavigate={navigateTo} 
+                onLogout={handleLogout} 
+              />
+            ) : (
+              <AuthPages 
+                initialMode="login" 
+                onNavigate={navigateTo} 
+                onLoginSuccess={handleLoginSuccess} 
+              />
+            )
+          )}
+
           {view === 'admin' && (
-            <AdminDashboard 
-              onNavigate={navigateTo} 
-              onLogout={handleLogout} 
-            />
+            currentUser && currentUser.role === 'admin' ? (
+              <AdminDashboard 
+                onNavigate={navigateTo} 
+                onLogout={handleLogout} 
+              />
+            ) : (
+              <AdminLoginPage 
+                onNavigate={navigateTo} 
+                onLoginSuccess={handleLoginSuccess} 
+              />
+            )
           )}
         </Suspense>
       </main>
