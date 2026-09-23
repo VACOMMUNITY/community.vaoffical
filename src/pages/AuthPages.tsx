@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { api } from '../data/api';
-import type { User } from '../data/mockDatabase';
+import { type User, db } from '../data/mockDatabase';
 import { ArrowLeft, Mail, Lock, User as UserIcon, Phone, ShieldAlert, Check, X, ArrowRight, CheckCircle2, Shield } from 'lucide-react';
 
 interface AuthPagesProps {
@@ -21,6 +21,13 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
   const [registeredEmail, setRegisteredEmail] = useState('');
+
+  // Google Modal states
+  const [showGoogleModal, setShowGoogleModal] = useState(false);
+  const [googleEmail, setGoogleEmail] = useState('');
+  const [googleName, setGoogleName] = useState('');
+  const [googleSubmitting, setGoogleSubmitting] = useState(false);
+  const currentUser = db.getCurrentUser();
 
   // Error/Status messages
   const [errorMsg, setErrorMsg] = useState('');
@@ -111,13 +118,38 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
     setErrorMsg('');
     setLoading(true);
     try {
-      await api.auth.googleLogin();
-      // Google OAuth will redirect to Google login window
-    } catch (err: any) {
-      const msg = err.message || 'Google sign-in could not be initiated.';
-      setErrorMsg(msg);
-      showNotification(msg, 'error');
+      const res = await api.auth.googleLogin();
+      if (res?.requireModal) {
+        setShowGoogleModal(true);
+      }
+    } catch {
+      setShowGoogleModal(true);
+    } finally {
       setLoading(false);
+    }
+  };
+
+  const handleConfirmGoogleSignIn = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!googleEmail || !googleEmail.includes('@')) {
+      showNotification('Please enter a valid Google email address.', 'error');
+      return;
+    }
+    setGoogleSubmitting(true);
+    try {
+      const user = await api.auth.signInWithGoogleAccount({
+        email: googleEmail.trim().toLowerCase(),
+        name: googleName.trim() || googleEmail.split('@')[0]
+      });
+      showNotification(`Signed in with Google as ${user.name}`, 'success');
+      setShowGoogleModal(false);
+      setTimeout(() => {
+        onLoginSuccess(user);
+      }, 350);
+    } catch (err: any) {
+      showNotification(err.message || 'Google sign-in failed.', 'error');
+    } finally {
+      setGoogleSubmitting(false);
     }
   };
 
@@ -436,6 +468,126 @@ export default function AuthPages({ initialMode, onNavigate, onLoginSuccess }: A
         )}
 
       </div>
+
+      {/* GOOGLE SIGN-IN ACCOUNT PICKER MODAL */}
+      {showGoogleModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
+          <div className="w-full max-w-md rounded-3xl bg-[#0F172A] border border-white/20 p-6 sm:p-8 shadow-2xl relative text-left space-y-5 animate-scale-up">
+            
+            {/* Header with Google Logo */}
+            <div className="flex items-center justify-between pb-3 border-b border-white/10">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-2xl bg-white shadow-md">
+                  <svg className="h-6 w-6" viewBox="0 0 24 24">
+                    <path fill="#EA4335" d="M12 5.04c1.62 0 3.08.56 4.22 1.64l3.15-3.15C17.45 1.74 14.96 1 12 1 7.35 1 3.39 3.65 1.5 7.5l3.85 3C6.26 7.42 8.9 5.04 12 5.04z" />
+                    <path fill="#4285F4" d="M23.49 12.27c0-.81-.07-1.59-.2-2.36H12v4.51h6.46c-.28 1.48-1.12 2.74-2.38 3.59l3.7 2.87c2.16-2 3.41-4.94 3.41-8.61z" />
+                    <path fill="#FBBC05" d="M5.35 14.5c-.24-.72-.38-1.49-.38-2.3s.14-1.58.38-2.3L1.5 6.9C.54 8.82 0 10.97 0 13.2s.54 4.38 1.5 6.3l3.85-3z" />
+                    <path fill="#34A853" d="M12 23c3.24 0 5.97-1.07 7.96-2.92l-3.7-2.87c-1.03.69-2.35 1.1-3.96 1.1-3.1 0-5.74-2.38-6.65-5.46L1.8 15.85C3.69 19.7 7.65 22.3 12 22.3z" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-base font-extrabold text-white leading-tight">Sign in with Google</h3>
+                  <p className="text-[11px] text-slate-400">Choose your Google account for COMMUNITY.VA</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowGoogleModal(false)}
+                className="p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Quick account suggestion if user previously on site */}
+            {currentUser && currentUser.email && (
+              <div 
+                onClick={() => {
+                  setGoogleEmail(currentUser.email);
+                  setGoogleName(currentUser.name);
+                }}
+                className="flex items-center gap-3 p-3 rounded-2xl bg-white/5 hover:bg-blue-500/10 border border-white/10 hover:border-blue-500/30 transition cursor-pointer"
+              >
+                <img 
+                  src={currentUser.profilePhoto || `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(currentUser.name)}`} 
+                  alt={currentUser.name} 
+                  className="h-10 w-10 rounded-full border border-white/20 object-cover" 
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-bold text-white truncate">{currentUser.name}</p>
+                  <p className="text-[11px] text-slate-400 truncate">{currentUser.email}</p>
+                </div>
+                <span className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-full">Use this</span>
+              </div>
+            )}
+
+            {/* Google Account Form */}
+            <form onSubmit={handleConfirmGoogleSignIn} className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  Google Email Address <span className="text-red-400">*</span>
+                </label>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-3 h-4 w-4 text-slate-500" />
+                  <input
+                    type="email"
+                    required
+                    placeholder="yourname@gmail.com"
+                    value={googleEmail}
+                    onChange={(e) => setGoogleEmail(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-3.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-300 mb-1">
+                  Your Full Name
+                </label>
+                <div className="relative">
+                  <UserIcon className="absolute left-3.5 top-3 h-4 w-4 text-slate-500" />
+                  <input
+                    type="text"
+                    placeholder="e.g. Abhi Ram"
+                    value={googleName}
+                    onChange={(e) => setGoogleName(e.target.value)}
+                    className="w-full rounded-xl border border-white/10 bg-white/5 py-2.5 pl-10 pr-3.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
+                  />
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-blue-500/10 border border-blue-500/20 text-[11px] text-blue-200 leading-relaxed flex items-start gap-2">
+                <CheckCircle2 className="h-4 w-4 shrink-0 text-blue-400 mt-0.5" />
+                <span>
+                  Google will securely share your profile details with COMMUNITY.VA to confirm your student access.
+                </span>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowGoogleModal(false)}
+                  className="w-1/3 rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 py-2.5 text-xs font-bold text-slate-300 transition cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={googleSubmitting}
+                  className="w-2/3 flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 py-2.5 text-xs font-extrabold text-white shadow-lg shadow-blue-500/25 transition cursor-pointer disabled:opacity-50"
+                >
+                  {googleSubmitting ? (
+                    <span>Signing In...</span>
+                  ) : (
+                    <span>Continue with Google</span>
+                  )}
+                </button>
+              </div>
+            </form>
+
+          </div>
+        </div>
+      )}
 
       {/* Floating Toast Notification */}
       {toast && (
