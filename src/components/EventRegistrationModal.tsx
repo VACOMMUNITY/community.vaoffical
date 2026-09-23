@@ -15,6 +15,96 @@ interface EventRegistrationModalProps {
   onSuccess: () => void;
 }
 
+// Client-side image compression: converts high-res smartphone screenshots/camera photos (up to 25MB)
+// into crystal-clear ~60KB - 120KB JPEG base64 strings so they never crash localStorage quota or fail backend upload.
+const compressScreenshot = (file: File): Promise<{ base64: string; fileName: string; sizeKb: number }> => {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/')) {
+      reject(new Error('Please upload an image file (PNG, JPG, JPEG, WEBP).'));
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error('Could not read the selected image file.'));
+    reader.onload = (loadEvt) => {
+      const result = loadEvt.target?.result;
+      if (!result || typeof result !== 'string') {
+        reject(new Error('Invalid image data.'));
+        return;
+      }
+
+      const img = new Image();
+      img.onerror = () => {
+        // Fallback: if browser canvas cannot decode (e.g. certain SVG/HEIC), use raw data if size is reasonable
+        if (result.length < 2 * 1024 * 1024) {
+          resolve({
+            base64: result,
+            fileName: file.name,
+            sizeKb: Math.round(result.length / 1024)
+          });
+        } else {
+          reject(new Error('Image format could not be decoded. Please upload a standard JPG or PNG screenshot.'));
+        }
+      };
+
+      img.onload = () => {
+        try {
+          // Max dimension 1280px ensures all transaction IDs, amounts, and timestamps remain crisp and readable
+          const maxDimension = 1280;
+          let width = img.naturalWidth || img.width;
+          let height = img.naturalHeight || img.height;
+
+          if (width > maxDimension || height > maxDimension) {
+            if (width > height) {
+              height = Math.round((height * maxDimension) / width);
+              width = maxDimension;
+            } else {
+              width = Math.round((width * maxDimension) / height);
+              height = maxDimension;
+            }
+          }
+
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) {
+            resolve({
+              base64: result,
+              fileName: file.name,
+              sizeKb: Math.round(result.length / 1024)
+            });
+            return;
+          }
+
+          // Solid background behind transparent areas
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillRect(0, 0, width, height);
+          ctx.drawImage(img, 0, 0, width, height);
+
+          // Compress to JPEG 0.82 quality: ~60KB - 130KB
+          const compressed = canvas.toDataURL('image/jpeg', 0.82);
+          const sizeKb = Math.round((compressed.length * 3) / 4 / 1024);
+          resolve({
+            base64: compressed,
+            fileName: file.name,
+            sizeKb
+          });
+        } catch {
+          resolve({
+            base64: result,
+            fileName: file.name,
+            sizeKb: Math.round(result.length / 1024)
+          });
+        }
+      };
+
+      img.src = result;
+    };
+    reader.readAsDataURL(file);
+  });
+};
+
 export default function EventRegistrationModal({
   isOpen,
   event,
@@ -37,7 +127,11 @@ export default function EventRegistrationModal({
   // Payment proof
   const [screenshotBase64, setScreenshotBase64] = useState<string>('');
   const [screenshotFileName, setScreenshotFileName] = useState<string>('');
+  const [screenshotSizeKb, setScreenshotSizeKb] = useState<number>(0);
+  const [uploadingScreenshot, setUploadingScreenshot] = useState<boolean>(false);
+  const [isDragging, setIsDragging] = useState<boolean>(false);
   const [confirmedPayment, setConfirmedPayment] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // States
   const [submitting, setSubmitting] = useState(false);
@@ -61,6 +155,12 @@ export default function EventRegistrationModal({
       }
       setScreenshotBase64('');
       setScreenshotFileName('');
+      setScreenshotSizeKb(0);
+      setUploadingScreenshot(false);
+      setIsDragging(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
       setConfirmedPayment(event.fees === 0);
       setErrorMessage('');
       setSubmitted(false);
@@ -89,30 +189,66 @@ export default function EventRegistrationModal({
   const finalAmount = getAmount();
   const isFree = finalAmount === 0;
 
-  // Handle screenshot upload
-  const handleScreenshotChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  // Process selected or dropped screenshot
+  const processFile = async (file: File) => {
     if (!file) return;
 
     if (!file.type.startsWith('image/')) {
-      setErrorMessage('Please upload a valid image file (PNG, JPG, JPEG, WEBP).');
+      setErrorMessage('Please select a valid image file (PNG, JPG, JPEG, WEBP).');
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setErrorMessage('File size must be under 5 MB.');
+    if (file.size > 25 * 1024 * 1024) {
+      setErrorMessage('Image size is too large (over 25 MB). Please select a screenshot under 25 MB.');
       return;
     }
 
-    setScreenshotFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (loadEvt) => {
-      if (loadEvt.target?.result) {
-        setScreenshotBase64(loadEvt.target.result as string);
-        setErrorMessage('');
+    setUploadingScreenshot(true);
+    setErrorMessage('');
+
+    try {
+      const { base64, fileName, sizeKb } = await compressScreenshot(file);
+      setScreenshotBase64(base64);
+      setScreenshotFileName(fileName);
+      setScreenshotSizeKb(sizeKb);
+      setConfirmedPayment(true);
+      setErrorMessage('');
+    } catch (err: any) {
+      setErrorMessage(err.message || 'Failed to process screenshot. Please try another image.');
+    } finally {
+      setUploadingScreenshot(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
       }
-    };
-    reader.readAsDataURL(file);
+    }
+  };
+
+  // Handle file input selection
+  const handleScreenshotChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+  };
+
+  // Handle drag and drop
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) {
+      processFile(file);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -620,22 +756,46 @@ export default function EventRegistrationModal({
                         <label className="block text-xs font-bold text-slate-200 mb-1.5">
                           Upload Payment Screenshot <span className="text-red-400">*</span>
                         </label>
+
+                        {/* Hidden native input with explicit ref and ID (accessible and not display:none with required) */}
+                        <input
+                          ref={fileInputRef}
+                          id="payment-screenshot-input"
+                          type="file"
+                          accept="image/*"
+                          onChange={handleScreenshotChange}
+                          className="sr-only"
+                          disabled={submitting || uploadingScreenshot}
+                        />
                         
-                        {screenshotBase64 ? (
-                          <div className="relative flex items-center justify-between p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/40">
+                        {uploadingScreenshot ? (
+                          <div className="flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed border-blue-500/50 bg-blue-500/10 text-center animate-pulse">
+                            <div className="h-6 w-6 border-2 border-blue-400 border-t-transparent rounded-full animate-spin mb-2"></div>
+                            <span className="text-xs font-bold text-blue-300">Processing & Compressing Screenshot...</span>
+                            <span className="text-[10px] text-slate-400 mt-0.5">Optimizing image for instant verification</span>
+                          </div>
+                        ) : screenshotBase64 ? (
+                          <div className="relative flex items-center justify-between p-3.5 rounded-2xl bg-emerald-500/10 border border-emerald-500/40 shadow-inner">
                             <div className="flex items-center gap-3 min-w-0">
                               <img
                                 src={screenshotBase64}
                                 alt="Screenshot Preview"
-                                className="h-12 w-12 rounded-xl object-cover border border-emerald-500/50"
+                                className="h-14 w-14 rounded-xl object-cover border-2 border-emerald-500/60 shadow-md bg-black"
                               />
                               <div className="min-w-0">
-                                <p className="text-xs font-bold text-white truncate max-w-[200px]">
-                                  {screenshotFileName || 'receipt.png'}
+                                <p className="text-xs font-bold text-white truncate max-w-[180px] sm:max-w-[220px]">
+                                  {screenshotFileName || 'payment_receipt.jpg'}
                                 </p>
-                                <p className="text-[10px] text-emerald-400 flex items-center gap-1 font-semibold">
-                                  <Check className="h-3 w-3" /> Receipt uploaded
+                                <p className="text-[10px] text-emerald-400 flex items-center gap-1 font-semibold mt-0.5">
+                                  <Check className="h-3 w-3" /> Screenshot attached {screenshotSizeKb > 0 ? `(~${screenshotSizeKb} KB)` : ''}
                                 </p>
+                                <button
+                                  type="button"
+                                  onClick={() => fileInputRef.current?.click()}
+                                  className="text-[10px] text-blue-400 hover:text-blue-300 underline font-medium mt-0.5 cursor-pointer"
+                                >
+                                  Change screenshot
+                                </button>
                               </div>
                             </div>
 
@@ -644,25 +804,35 @@ export default function EventRegistrationModal({
                               onClick={() => {
                                 setScreenshotBase64('');
                                 setScreenshotFileName('');
+                                setScreenshotSizeKb(0);
+                                if (fileInputRef.current) fileInputRef.current.value = '';
                               }}
-                              className="p-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white transition cursor-pointer"
+                              className="p-2 rounded-xl bg-white/10 hover:bg-red-500/20 text-slate-300 hover:text-red-400 border border-white/10 transition cursor-pointer"
                               title="Remove screenshot"
                             >
                               <X className="h-4 w-4" />
                             </button>
                           </div>
                         ) : (
-                          <label className="flex flex-col items-center justify-center p-5 rounded-2xl border-2 border-dashed border-white/20 hover:border-blue-500/60 bg-white/5 hover:bg-white/10 transition cursor-pointer">
-                            <Upload className="h-6 w-6 text-blue-400 mb-2" />
-                            <span className="text-xs font-bold text-white">Click to Upload Payment Screenshot</span>
-                            <span className="text-[10px] text-slate-400 mt-0.5">PNG, JPG, JPEG, WEBP (Max 5MB)</span>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              required
-                              onChange={handleScreenshotChange}
-                              className="hidden"
-                            />
+                          <label
+                            htmlFor="payment-screenshot-input"
+                            onDragOver={handleDragOver}
+                            onDragLeave={handleDragLeave}
+                            onDrop={handleDrop}
+                            className={`flex flex-col items-center justify-center p-6 rounded-2xl border-2 border-dashed transition cursor-pointer text-center select-none ${
+                              isDragging 
+                                ? 'border-blue-400 bg-blue-500/20 scale-[1.01]' 
+                                : 'border-white/20 hover:border-blue-400/80 bg-white/5 hover:bg-white/10'
+                            }`}
+                          >
+                            <div className="p-3 rounded-full bg-blue-500/10 border border-blue-500/30 text-blue-400 mb-2">
+                              <Upload className="h-5 w-5" />
+                            </div>
+                            <span className="text-xs font-bold text-white">Click or Drag & Drop Payment Screenshot</span>
+                            <span className="text-[10px] text-slate-400 mt-1">GPay, PhonePe, Paytm, or Bank receipt (PNG, JPG, WEBP)</span>
+                            <span className="mt-2 inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-semibold bg-blue-500/10 text-blue-300 border border-blue-500/20">
+                              Browse Files
+                            </span>
                           </label>
                         )}
                       </div>

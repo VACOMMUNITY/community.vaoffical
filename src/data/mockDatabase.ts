@@ -743,12 +743,14 @@ export const initialCategories: EventCategory[] = [
 // LocalStorage Persistence Wrapper
 
 const loadData = <T>(key: string, initialData: T): T => {
-  const data = localStorage.getItem(`cva_${key}`);
-  if (!data) {
-    localStorage.setItem(`cva_${key}`, JSON.stringify(initialData));
-    return initialData;
-  }
   try {
+    const data = localStorage.getItem(`cva_${key}`);
+    if (!data) {
+      try {
+        localStorage.setItem(`cva_${key}`, JSON.stringify(initialData));
+      } catch {}
+      return initialData;
+    }
     return JSON.parse(data);
   } catch {
     return initialData;
@@ -756,7 +758,25 @@ const loadData = <T>(key: string, initialData: T): T => {
 };
 
 const saveData = <T>(key: string, data: T): void => {
-  localStorage.setItem(`cva_${key}`, JSON.stringify(data));
+  try {
+    localStorage.setItem(`cva_${key}`, JSON.stringify(data));
+  } catch (err) {
+    console.warn(`[COMMUNITY.VA] LocalStorage write failed for key "${key}":`, err);
+    try {
+      // If saving registrations exceeds quota, preserve latest registrations while truncating older large screenshot strings
+      if (key === 'registrations' && Array.isArray(data)) {
+        const optimized = (data as any[]).map((r, i) => {
+          if (i > 15 && r.paymentScreenshot && r.paymentScreenshot.length > 1000) {
+            return { ...r, paymentScreenshot: '[Archived Proof]' };
+          }
+          return r;
+        });
+        localStorage.setItem(`cva_${key}`, JSON.stringify(optimized));
+      }
+    } catch (fallbackErr) {
+      console.error('[COMMUNITY.VA] Fallback storage write failed:', fallbackErr);
+    }
+  }
   // Dispatch a custom event to notify all components of updates
   window.dispatchEvent(new Event('db-update'));
 };
